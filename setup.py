@@ -5,7 +5,7 @@ def read_requirements(file_path):
         return [line.strip() for line in file if line.strip()]
 
 setup(
-    name='your_package',
+    name='flixOpt',
     version='0.1.0',
     packages=find_packages(),
     install_requires=read_requirements('requirements.txt')

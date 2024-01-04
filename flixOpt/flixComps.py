@@ -657,14 +657,14 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
 
     # Transformer Strom
-    P_el = cFlow(label="Pel", bus=BusEl)
+    P_el = cFlow(label="Pel", bus=BusEl,nominal_val=max(segPel))
     Q_fu = cFlow(label="Helper" + label + 'A', bus=HelperBus)
     segs = {Q_fu: segQfu.copy(), P_el: segPel.copy()}
     EKTA = cBaseLinearTransformer(label=label + "A", exists= exists, group = group,
                                   outputs=[P_el], inputs=[Q_fu], segmentsOfFlows=segs)
 
     # Transformer Wärme
-    Q_th = cFlow(label="Qth", bus=BusTh, investArgs=investArgs)
+    Q_th = cFlow(label="Qth", nominal_val=max(segQth), bus=BusTh, investArgs=investArgs)
     Q_fu = cFlow(label="Helper" + label + 'B', bus=HelperBus)
     segs = {Q_fu: segQfu.copy(), Q_th: segQth.copy()}
     EKTB = cBaseLinearTransformer(label=label + "B", exists= exists, group = group,

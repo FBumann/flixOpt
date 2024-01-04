@@ -640,8 +640,9 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
     '''
 
     # Test if for min_rel to only be 0 or 1
-    if isinstance(minmax_rel, (float,int)) and minmax_rel!=1:
-        raise Exception("min_rel has to be 1, otherwise "+label+" will behave unexpectetly")
+    if isinstance(minmax_rel, (float,int)):
+        if minmax_rel!=1:
+            raise Exception("min_rel has to be 1, otherwise "+label+" will behave unexpectetly")
     elif all(item == 0 or item == 1 for item in minmax_rel):
         pass
     else:

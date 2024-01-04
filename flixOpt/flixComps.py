@@ -580,8 +580,8 @@ def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: c
     return [EKTIn, EKTA, EKTB]
 
 def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
-            segQfu: list[float], segQth: list[float], segPel: list[float], minmax_rel:[int,list]=1,
-            exists=None, group = None,**kwargs)->list:
+            segQfu: list[float], segQth: list[float], segPel: list[float], costs_fuel:dict, minmax_rel:[int,list]=1,
+            exists=None, group = None, investArgs:cInvestArgs=None, **kwargs)->list:
     '''
     EKT B - On/Off, interpolation with Base Points
     Creates a KWK with a variable rate between electricity and heat production
@@ -598,31 +598,60 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
 
     Parameters
     ----------
+    label: str
+        A string representing the label for the component.
+    BusFuel: cBus
+        The bus representing the fuel input for the component.
+    BusTh: cBus
+        The bus representing the thermal output for the component.
+    BusEl: cBus
+        The bus representing the electrical output for the component.
     segQfu: list[float]
-        Expression with Base Points
-        [0, 5, 5, 10]
+        Expression with Base Points for fuel flow. Ccommonly a repeating number
+        [10, 10, 10, 10]
     segQth: list[float]
-        Expression with Base Points
+        Expression with Base Points for thermal flow.
         [0, 3, 3, 9]
     segPel: list[float]
-        Expression with Base Points
+        Expression with Base Points for electrical power.
         [0, 1, 1, 3]
+    costs_fuel: dict
+        A dictionary representing the costs associated with fuel input. cEffect as keys
+    minmax_rel: [int, list], optional
+        A parameter controlling the behavior of min_rel. Defaults to 1. Compontn cant modulate Power, so only 1 and 0 allowed
+    exists: any, optional
+        A parameter specifying whether the component already exists. Defaults to None.
+    group: any, optional
+        A parameter specifying the group to which the component belongs. Defaults to None.
+    investArgs: cInvestArgs, optional
+        An object containing investment-related parameters. Defaults to None.
+    **kwargs
+        Additional keyword arguments. Passed to the input fuel flow. Allowed keywords see documentation of cFlow
 
     Returns
     -------
     list(cBaseLinearTransformer, cBaseLinearTransformer, cBaseLinearTransformer)
         a list of Components that need to be added to the cEnergySystem
+
+    Raises
+    ------
+    Exception
+        Raised if minmax_rel is not 0 or 1, or if minmax_rel contains values other than 0 and 1.
     '''
-    # Testinf for min_rel to only be 0 or 1
-    if isinstance(minmax_rel, (float,int)):
-        if minmax_rel!=1: raise Exception("min_rel has to be 1, otherwise "+label+" will behave unexpectetly")
-    elif all(item == 0 or item == 1 for item in minmax_rel): pass
-    else: raise Exception("min_rel must contain only 1 and 0, otherwise "+label+" will behave unexpectetly")
+
+    # Test if for min_rel to only be 0 or 1
+    if isinstance(minmax_rel, (float,int)) and minmax_rel!=1:
+        raise Exception("min_rel has to be 1, otherwise "+label+" will behave unexpectetly")
+    elif all(item == 0 or item == 1 for item in minmax_rel):
+        pass
+    else:
+        raise Exception("min_rel must contain only 1 and 0, otherwise "+label+" will behave unexpectetly")
 
     HelperBus = cBus(label='Helper' + label + 'In', media=None)  # balancing node/bus of electricity
 
     # Transformer 1
-    Qin = cFlow(label="Qfu", bus=BusFuel, nominal_val=max(segQfu), min_rel=minmax_rel, max_rel=minmax_rel, **kwargs)
+    Qin = cFlow(label="Qfu", bus=BusFuel, nominal_val=max(segQfu), min_rel=minmax_rel, max_rel=minmax_rel,
+                costsPerFlowHour=costs_fuel, **kwargs)
     Qout = cFlow(label="Helper" + label + 'Fu', bus=HelperBus)
     EKTIn = cBaseLinearTransformer(label=label + "In", exists= exists, group = group,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
@@ -635,7 +664,7 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
                                   outputs=[P_el], inputs=[Q_fu], segmentsOfFlows=segs)
 
     # Transformer Wärme
-    Q_th = cFlow(label="Qth", bus=BusTh)
+    Q_th = cFlow(label="Qth", bus=BusTh, investArgs=investArgs)
     Q_fu = cFlow(label="Helper" + label + 'B', bus=HelperBus)
     segs = {Q_fu: segQfu.copy(), Q_th: segQth.copy()}
     EKTB = cBaseLinearTransformer(label=label + "B", exists= exists, group = group,

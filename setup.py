@@ -7,6 +7,6 @@ def read_requirements(file_path):
 setup(
     name='flixOpt',
     version='0.1.0',
-    packages=find_packages(exclude=['examples']),
+    packages=find_packages(exclude=['tests', 'docs', '.git', '.vscode', 'build', '.venv']),
     install_requires=read_requirements('requirements.txt')
 )

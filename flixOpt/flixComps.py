@@ -580,8 +580,9 @@ def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: c
     return [EKTIn, EKTA, EKTB]
 
 def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
-            segQfu: list[float], segQth: list[float], segPel: list[float], costs_fuel:dict, minmax_rel:[int,list]=1,
-            exists=None, group = None, investArgs:cInvestArgs=None, **kwargs)->list:
+            nominal_val_Qfu:float, segQth: list[float], segPel: list[float],
+            costsPerFlowHour_fuel:dict=None, costsPerFlowHour_th:dict=None, costsPerFlowHour_el:dict=None,
+            minmax_rel:[int,list]=1, exists=None, group = None, investArgs:cInvestArgs=None, **kwargs)->list:
     '''
     EKT B - On/Off, interpolation with Base Points
     Creates a KWK with a variable rate between electricity and heat production
@@ -606,25 +607,28 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
         The bus representing the thermal output for the component.
     BusEl: cBus
         The bus representing the electrical output for the component.
-    segQfu: list[float]
-        Expression with Base Points for fuel flow. Ccommonly a repeating number
-        [10, 10, 10, 10]
+    nominal_val_Qfu: float
+        Fuel flow. Constant, But iCanSwitchOff=True
     segQth: list[float]
         Expression with Base Points for thermal flow.
-        [0, 3, 3, 9]
+        [2, 5, 9]
     segPel: list[float]
         Expression with Base Points for electrical power.
-        [0, 1, 1, 3]
-    costs_fuel: dict
+        [3, 1, 0]
+    costsPerFlowHour_fuel: dict
         A dictionary representing the costs associated with fuel input. cEffect as keys
+    costsPerFlowHour_el: dict
+        A dictionary representing the costs associated with electricity output. cEffect as keys
+    costsPerFlowHour_th: dict
+        A dictionary representing the costs associated with thermal output. cEffect as keys
     minmax_rel: [int, list], optional
-        A parameter controlling the behavior of min_rel. Defaults to 1. Compontn cant modulate Power, so only 1 and 0 allowed
+        A parameter controlling the behavior of min_rel. Defaults to 1. Component can't modulate it's Power, so only 1 and 0 allowed
     exists: any, optional
-        A parameter specifying whether the component already exists. Defaults to None.
+        A parameter specifying when the component exists. Defaults to None.
     group: any, optional
         A parameter specifying the group to which the component belongs. Defaults to None.
     investArgs: cInvestArgs, optional
-        An object containing investment-related parameters. Defaults to None.
+        An object containing investment-related parameters. Defaults to None. Passed to the thermal output flow
     **kwargs
         Additional keyword arguments. Passed to the input fuel flow. Allowed keywords see documentation of cFlow
 
@@ -648,28 +652,45 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
     else:
         raise Exception("min_rel must contain only 1 and 0, otherwise "+label+" will behave unexpectetly")
 
-    HelperBus = cBus(label='Helper' + label + 'In', media=None)  # balancing node/bus of electricity
+    # Create Lists for segments_of_flows
+    segQfu_el = np.linspace(start=0, stop=nominal_val_Qfu, num=len(segPel)).tolist()
+    segQfu_th = segQfu_el[::-1]     # reversed
+    # Apply proper formating for segments of flows, rounding to avoid numerical error, which leads to excess in HelperBus
+    # TODO: Is this necessary?
+    nominal_val_Qfu = round(nominal_val_Qfu,2)
+    segQfu_el = [num for num in segQfu_el for _ in range(2)][1:-1]
+    segQfu_th = [num for num in segQfu_th for _ in range(2)][1:-1]
+    segQth = [num for num in segQth for _ in range(2)][1:-1]
+    segPel = [num for num in segPel for _ in range(2)][1:-1]
+
+    segQfu_el = [round(num, 0) for num in segQfu_el]
+    segQfu_th = [round(num, 0) for num in segQfu_th]
+    segQth = [round(num, 0) for num in segQth]
+    segPel = [round(num, 0) for num in segPel]
+
+    HelperBus = cBus(label='Helper' + label + 'In', media=None, excessCostsPerFlowHour=None)  # balancing node/bus of electricity
 
     # Transformer 1
-    Qin = cFlow(label="Qfu", bus=BusFuel, nominal_val=max(segQfu), min_rel=minmax_rel, max_rel=minmax_rel,
-                costsPerFlowHour=costs_fuel, **kwargs)
+    Qin = cFlow(label="Qfu", bus=BusFuel, nominal_val=nominal_val_Qfu, min_rel=minmax_rel, max_rel=minmax_rel,
+                costsPerFlowHour=costsPerFlowHour_fuel, **kwargs)
     Qout = cFlow(label="Helper" + label + 'Fu', bus=HelperBus)
     EKTIn = cBaseLinearTransformer(label=label + "In", exists= exists, group = group,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
 
     # Transformer Strom
-    P_el = cFlow(label="Pel", bus=BusEl,nominal_val=max(segPel))
-    Q_fu = cFlow(label="Helper" + label + 'A', bus=HelperBus)
-    segs = {Q_fu: segQfu.copy(), P_el: segPel.copy()}
+    P_el = cFlow(label="Pel", bus=BusEl, nominal_val=max(segPel), costsPerFlowHour=costsPerFlowHour_el)
+    Q_fu = cFlow(label="Helper" + label + 'A', bus=HelperBus,nominal_val=nominal_val_Qfu)
+    segs_el = {Q_fu: segQfu_el, P_el: segPel.copy()}
     EKTA = cBaseLinearTransformer(label=label + "A", exists= exists, group = group,
-                                  outputs=[P_el], inputs=[Q_fu], segmentsOfFlows=segs)
+                                  outputs=[P_el], inputs=[Q_fu], segmentsOfFlows=segs_el)
 
     # Transformer Wärme
-    Q_th = cFlow(label="Qth", nominal_val=max(segQth), bus=BusTh, investArgs=investArgs)
-    Q_fu = cFlow(label="Helper" + label + 'B', bus=HelperBus)
-    segs = {Q_fu: segQfu.copy(), Q_th: segQth.copy()}
+    Q_th = cFlow(label="Qth", bus=BusTh, nominal_val=max(segQth),  costsPerFlowHour=costsPerFlowHour_th,
+                 investArgs=investArgs)
+    Q_fu2 = cFlow(label="Helper" + label + 'B', bus=HelperBus)
+    segs_th = {Q_fu2: segQfu_th, Q_th: segQth}
     EKTB = cBaseLinearTransformer(label=label + "B", exists= exists, group = group,
-                                  outputs=[Q_th], inputs=[Q_fu], segmentsOfFlows=segs)
+                                  outputs=[Q_th], inputs=[Q_fu2], segmentsOfFlows=segs_th)
 
     return [EKTIn, EKTA, EKTB]
 

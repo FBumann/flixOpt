@@ -18,7 +18,9 @@ class cBaseLinearTransformer(cBaseComponent):
     """
     new_init_args = ['label', 'inputs', 'outputs', 'factor_Sets', 'segmentsOfFlows']
     not_used_args = ['label']
-    def __init__(self, label:str, inputs:list, outputs:list, exists=1, group:str=None, factor_Sets=None, segmentsOfFlows=None, **kwargs):
+
+    def __init__(self, label:str, inputs:list, outputs:list, exists=1, group:str=None, factor_Sets=None,
+                 segmentsOfFlows=None, **kwargs):
         '''
         Parameters
         ----------
@@ -80,8 +82,6 @@ class cBaseLinearTransformer(cBaseComponent):
         elif (factor_Sets is not None) and (segmentsOfFlows is not None):
             raise Exception('Either factor_Sets or segmentsOfFlows must \
                             be defined! Not Both!')
-            
-
 
         self.group = group
         # type checking
@@ -92,7 +92,6 @@ class cBaseLinearTransformer(cBaseComponent):
 
         # copy information of group and exists to in-flows and out-flows
         for flow in self.inputs+self.outputs:
-
             flow.group = self.group
 
             flow.exists = cTS_vector('exists', exists, flow)
@@ -366,6 +365,8 @@ class cEHK(cBaseLinearTransformer):
 
         # # generische property für jeden Koeffizienten
         # self.eta = property(lambda s: s.__get_coeff('eta'), lambda s,v: s.__set_coeff(v,'eta'))
+
+
 class cHeatPump(cBaseLinearTransformer):
     """
     class cHeatPump
@@ -508,6 +509,7 @@ class cKWK(cBaseLinearTransformer):
         helpers.checkBoundsOfParameter(eta_el, 'eta_el', self.eta_el_bounds, self)
         if eta_th + eta_el > 1:
             raise Exception('Fehler in ' + self.label + ': eta_th + eta_el > 1 !')
+
 
 def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
             eta_th: list, eta_el: list, exists=None, group = None, **kwargs)->list:
@@ -700,6 +702,7 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
 
     return [EKTIn, EKTA, EKTB]
 
+
 class cAbwaermeHP(cBaseLinearTransformer):
     """
     class cAbwaermeHP
@@ -748,6 +751,7 @@ class cAbwaermeHP(cBaseLinearTransformer):
         # Plausibilität eta:
         self.eta_bounds = [0 + 1e-10, 20 - 1e-10]  # 0 < COP < 1
         helpers.checkBoundsOfParameter(COP, 'COP', self.eta_bounds, self)
+
 
 class cStorage(cBaseComponent):
     """
@@ -823,7 +827,6 @@ class cStorage(cBaseComponent):
         '''
         # TODO: neben min_rel_chargeState, max_rel_chargeState ggf. noch "val_rel_chargeState" implementieren damit konsistent zu flow (max_rel, min_rel, val_re)
 
-        
         # charge_state_end_min (absolute Werte, aber relative wären ggf. auch manchmal hilfreich)
         super().__init__(label, **kwargs)
 
@@ -857,7 +860,6 @@ class cStorage(cBaseComponent):
 
         # copy information of "group" and "exists" to in-flows and out-flows
         for flow in self.inputs + self.outputs:
-
             flow.group = self.group
 
             flow.exists = cTS_vector('exists', exists, flow)
@@ -937,7 +939,6 @@ class cStorage(cBaseComponent):
         else:
             ub = np.append(ub, ub[-1])  # charge_state_end_max)
 
-            
         self.mod.var_charge_state = cVariable_TS('charge_state', modBox.nrOfTimeSteps + 1, self, modBox, min=lb, max=ub,
                                                value=fix_value)  # Eins mehr am Ende!
         self.mod.var_charge_state.activateBeforeValues(self.chargeState0_inFlowHours, True)
@@ -1134,13 +1135,11 @@ class cSourceAndSink(cBaseComponent):
 
         # copy information of group and exists to in-flows and out-flows
         for flow in self.inputs+self.outputs:
-
             flow.group = self.group
 
             flow.exists = cTS_vector('exists', exists, flow)
             flow.max_rel = cTS_vector('max_rel', flow.max_rel.d_i * flow.exists.d_i, flow)
             flow.min_rel = cTS_vector('min_rel', flow.min_rel.d_i * flow.exists.d_i, flow)
-
 
         # Erzwinge die Erstellung der On-Variablen, da notwendig für gleichung
         self.source.activateOnValue()
@@ -1222,13 +1221,11 @@ class cSource(cBaseComponent):
 
         # copy information of group and exists to in-flows and out-flows
         for flow in self.inputs+self.outputs:
-
             flow.group = self.group
 
             flow.exists = cTS_vector('exists', exists, flow)
             flow.max_rel = cTS_vector('max_rel', flow.max_rel.d_i * flow.exists.d_i, flow)
             flow.min_rel = cTS_vector('min_rel', flow.min_rel.d_i * flow.exists.d_i, flow)
-
 
 
 class cSink(cBaseComponent):
@@ -1275,7 +1272,6 @@ class cSink(cBaseComponent):
 
         # copy information of group and exists to in-flows and out-flows
         for flow in self.inputs+self.outputs:
-
             flow.group = self.group
 
             flow.exists = cTS_vector('exists', exists, flow)
@@ -1348,8 +1344,7 @@ class cTransportation(cBaseComponent):
             # check buses:
             assert in2.bus == out1.bus, 'in2.bus is not equal out1.bus!'
             assert out2.bus == in1.bus, 'out2.bus is not equal in1.bus!'
-            
-            
+
         self.loss_rel = cTS_vector('loss_rel', loss_rel, self)#
         self.loss_abs = cTS_vector('loss_abs', loss_abs, self)#
         self.isAlwaysOn = isAlwaysOn
@@ -1358,8 +1353,6 @@ class cTransportation(cBaseComponent):
         if self.avoidFlowInBothDirectionsAtOnce and (in2 is not None):
             self.featureAvoidBothDirectionsAtOnce = cFeatureAvoidFlowsAtOnce('feature_avoidBothDirectionsAtOnce', self,
                                                                  [self.in1, self.in2])
-
-
 
     def declareVarsAndEqs(self, modBox:cModelBoxOfES):
         """
@@ -1373,8 +1366,6 @@ class cTransportation(cBaseComponent):
     def doModeling(self, modBox, timeIndexe):
         super().doModeling(modBox, timeIndexe)
 
-
-            
         # not both directions at once:
         if self.avoidFlowInBothDirectionsAtOnce and (self.in2 is not None): self.featureAvoidBothDirectionsAtOnce.doModeling(modBox, timeIndexe)
 
@@ -1393,8 +1384,7 @@ class cTransportation(cBaseComponent):
             self.eq_dir2 = cEquation('transport_dir2', self, modBox, eqType='eq')
             self.eq_dir2.addSummand(self.in2.mod.var_val, 1-self.loss_rel.d_i)
             self.eq_dir2.addSummand(self.out2.mod.var_val, -1)
-            if (self.loss_abs.d_i is not None) and np.any(self.loss_abs.d_i!=0):            
-                
+            if (self.loss_abs.d_i is not None) and np.any(self.loss_abs.d_i!=0):
                 assert self.in2.mod.var_on is not None, 'Var on wird benötigt für in2! Set min_rel!'
                 self.eq_dir2.addSummand(self.in2.mod.var_on, -1* self.loss_abs.d_i)
         
@@ -1405,8 +1395,6 @@ class cTransportation(cBaseComponent):
             self.eq_alwaysOn.addSummand(self.in1.mod.var_on, -1)
             if (self.in2 is not None) : self.eq_alwaysOn.addSummand(self.in2.mod.var_on, -1)
             self.eq_alwaysOn.addRightSide(-.5)# wg binärungenauigkeit 0.5 statt 1
-            
-
 
         # equate nominal value of second direction
         if (self.in2 is not None):

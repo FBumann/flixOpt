@@ -26,6 +26,8 @@ setup(
         'Topic :: Software Development :: Libraries :: Python'
     ],
 
-    packages=find_packages(exclude=['Tests', 'docs', '.git', '.vscode', 'build', '.venv']),
+    packages=find_packages(exclude=['tests', 'docs', 'examples', 'examples.*'
+                                    '.git', '.vscode', 'build', '.venv', 'venv/',
+                                    ]),
     install_requires=read_requirements('requirements.txt')
 )

@@ -1,8 +1,5 @@
 .idea/
+.venv/
 venv/
 .DS_Store
-examples/01_simple/results/
-examples/02_complex/results/
-examples/03_full_seg_agg/results/
-examples/04_transportation/results/
-Tests/
+examples/*/results/

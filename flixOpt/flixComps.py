@@ -12,7 +12,7 @@ from .basicModeling import *
 from .flixStructure import *
 from .flixFeatures import *
 
-class cBaseLinearTransformer(cBaseComponent):
+class cBaseLinearTransformer(Component):
     """
     Klasse cBaseLinearTransformer: Grundgerüst lineare Übertragungskomponente
     """
@@ -177,7 +177,7 @@ class cBaseLinearTransformer(cBaseComponent):
                                                                 get_var_on=get_var_on,
                                                                 checkListOfFlows=self.inputs + self.outputs)  # erst hier, damit auch nach __init__() noch Übergabe möglich.
 
-    def declareVarsAndEqs(self,modBox:cModelBoxOfES):
+    def declareVarsAndEqs(self, modBox:EnergySystemModel):
         """
         Deklarieren von Variablen und Gleichungen
 
@@ -193,7 +193,7 @@ class cBaseLinearTransformer(cBaseComponent):
         else:
             self.feature_linSegments.declareVarsAndEqs(modBox)
 
-    def doModeling(self,modBox:cModelBoxOfES,timeIndexe):
+    def doModeling(self, modBox:EnergySystemModel, timeIndexe):
         """
         Durchführen der Modellierung?
 
@@ -288,9 +288,9 @@ class cKessel(cBaseLinearTransformer):
             name of bolier.
         eta : float or TS
             thermal efficiency.
-        Q_fu : cFlow
+        Q_fu : Flow
             fuel input-flow
-        Q_th : cFlow
+        Q_th : Flow
             thermal output-flow.
         **kwargs : see mother classes!
         
@@ -308,8 +308,8 @@ class cKessel(cBaseLinearTransformer):
         self.Q_th = Q_th
 
         # allowed medium:
-        Q_fu.setMediumIfNotSet(cMediumCollection.fuel)
-        Q_th.setMediumIfNotSet(cMediumCollection.heat)
+        Q_fu.setMediumIfNotSet(MediumCollection.fuel)
+        Q_th.setMediumIfNotSet(MediumCollection.heat)
 
         # Plausibilität eta:
         self.eta_bounds = [0 + 1e-10, 1 - 1e-10]  # 0 < eta_th < 1
@@ -336,9 +336,9 @@ class cEHK(cBaseLinearTransformer):
             name of bolier.
         eta : float or TS
             thermal efficiency.
-        P_el : cFlow
+        P_el : Flow
             electric input-flow
-        Q_th : cFlow
+        Q_th : Flow
             thermal output-flow.
         **kwargs : see mother classes!
 
@@ -356,8 +356,8 @@ class cEHK(cBaseLinearTransformer):
         self.Q_th = Q_th
 
         # allowed medium:
-        P_el.setMediumIfNotSet(cMediumCollection.el)
-        Q_th.setMediumIfNotSet(cMediumCollection.heat)
+        P_el.setMediumIfNotSet(MediumCollection.el)
+        Q_th.setMediumIfNotSet(MediumCollection.heat)
 
         # Plausibilität eta:
         self.eta_bounds = [0 + 1e-10, 1 - 1e-10]  # 0 < eta_th < 1
@@ -382,9 +382,9 @@ class cHeatPump(cBaseLinearTransformer):
             name of heatpump.
         COP : float or TS
             Coefficient of performance.
-        P_el : cFlow
+        P_el : Flow
             electricity input-flow.
-        Q_th : cFlow
+        Q_th : Flow
             thermal output-flow.
         **kwargs : see motherclasses
         '''
@@ -399,8 +399,8 @@ class cHeatPump(cBaseLinearTransformer):
         self.Q_th = Q_th
 
         # allowed medium:
-        P_el.setMediumIfNotSet(cMediumCollection.el)
-        Q_th.setMediumIfNotSet(cMediumCollection.heat)
+        P_el.setMediumIfNotSet(MediumCollection.el)
+        Q_th.setMediumIfNotSet(MediumCollection.heat)
 
         # Plausibilität eta:
         self.eta_bounds = [0 + 1e-10, 20 - 1e-10]  # 0 < COP < 1
@@ -422,9 +422,9 @@ class cCoolingTower(cBaseLinearTransformer):
             name of cooling tower.
         specificElectricityDemand : float or TS
             auxiliary electricty demand per cooling power, i.g. 0.02 (2 %).
-        P_el : cFlow
+        P_el : Flow
             electricity input-flow.
-        Q_th : cFlow
+        Q_th : Flow
             thermal input-flow.
         **kwargs : see getKwargs() and their description in motherclasses
             
@@ -441,8 +441,8 @@ class cCoolingTower(cBaseLinearTransformer):
         self.Q_th = Q_th
 
         # allowed medium:
-        P_el.setMediumIfNotSet(cMediumCollection.el)
-        Q_th.setMediumIfNotSet(cMediumCollection.heat)
+        P_el.setMediumIfNotSet(MediumCollection.el)
+        Q_th.setMediumIfNotSet(MediumCollection.heat)
 
         # Plausibilität eta:
         self.specificElectricityDemand_bounds = [0, 1]  # 0 < eta_th < 1
@@ -472,11 +472,11 @@ class cKWK(cBaseLinearTransformer):
             thermal efficiency.
         eta_el : float or TS
             electrical efficiency.
-        Q_fu : cFlow
+        Q_fu : Flow
             fuel input-flow.
-        P_el : cFlow
+        P_el : Flow
             electricity output-flow.
-        Q_th : cFlow
+        Q_th : Flow
             heat output-flow.
         **kwargs : 
         
@@ -497,9 +497,9 @@ class cKWK(cBaseLinearTransformer):
         self.Q_th = Q_th
 
         # allowed medium:
-        Q_fu.setMediumIfNotSet(cMediumCollection.fuel)
-        Q_th.setMediumIfNotSet(cMediumCollection.heat)
-        P_el.setMediumIfNotSet(cMediumCollection.el)
+        Q_fu.setMediumIfNotSet(MediumCollection.fuel)
+        Q_th.setMediumIfNotSet(MediumCollection.heat)
+        P_el.setMediumIfNotSet(MediumCollection.el)
 
         # Plausibilität eta:
         self.eta_th_bounds = [0 + 1e-10, 1 - 1e-10]  # 0 < eta_th < 1
@@ -511,7 +511,7 @@ class cKWK(cBaseLinearTransformer):
             raise Exception('Fehler in ' + self.label + ': eta_th + eta_el > 1 !')
 
 
-def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
+def KWKektA(label: str, nominal_val: float, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
             eta_th: list, eta_el: list, exists=None, group = None, **kwargs)->list:
     '''
     EKT A - Modulation, linear interpolation
@@ -527,8 +527,8 @@ def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: c
         #  KWK_poweroriented    KWK_heatoriented,
     eta_th =   [0.00001,            0.9 ]
     eta_el =   [0.2,                0.1 ]
-    Q_th =   [ cFlow(),            cFlow() ]
-    P_el =   [ cFlow(),            cFlow() ]
+    Q_th =   [ Flow(),            Flow() ]
+    P_el =   [ Flow(),            Flow() ]
 
     Parameters
     ----------
@@ -540,11 +540,11 @@ def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: c
     eta_el : list of float or array
         electrical efficiency of poweroriented (po) and heatoriented (ho) operation.
         passed in a list [eta_th_po, eta_th_ho]. the elements can be float or array
-    Q_fu : cFlow
+    Q_fu : Flow
         fuel input-flow.
-    P_el : list of cFlow
+    P_el : list of Flow
         electricity output-flow.
-    Q_th : list of cFlow
+    Q_th : list of Flow
         heat output-flow.
     **kwargs :
         Additional keyword arguments. Passed to the fule input flow!!
@@ -552,7 +552,7 @@ def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: c
     Returns
     -------
     list(cBaseLinearTransformer, cKWK, cKWK)
-            a list of Components that need to be added to the cEnergySystem
+            a list of Components that need to be added to the EnergySystem
     '''
 
     # filtering,because eta can not be 0
@@ -568,28 +568,28 @@ def KWKektA(label: str, nominal_val: float, BusFuel: cBus, BusTh: cBus, BusEl: c
     eta_elB = eta_el[0]
     eta_elA = eta_el[1]
 
-    HelperBus = cBus(label='Helper' + label + 'In', media=None)  # balancing node/bus of electricity
+    HelperBus = Bus(label='Helper' + label + 'In', media=None)  # balancing node/bus of electricity
 
     # Transformer 1
-    Qin = cFlow(label="Qfu", bus=BusFuel, nominal_val=nominal_val, min_rel=1, **kwargs)
-    Qout = cFlow(label="Helper" + label + 'Fu', bus=HelperBus)
+    Qin = Flow(label="Qfu", bus=BusFuel, nominal_val=nominal_val, min_rel=1, **kwargs)
+    Qout = Flow(label="Helper" + label + 'Fu', bus=HelperBus)
     EKTIn = cBaseLinearTransformer(label=label + "In", exists= exists, group = group,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
     # EKT A
     EKTA = cKWK(label=label + "A", exists= exists, group = group,
                 eta_th=eta_thA, eta_el=eta_elA,
-                P_el=cFlow(label="Pel", bus=BusEl),
-                Q_fu=cFlow(label="Helper" + label + 'A', bus=HelperBus),
-                Q_th=cFlow(label="Qth", bus=BusTh))
+                P_el=Flow(label="Pel", bus=BusEl),
+                Q_fu=Flow(label="Helper" + label + 'A', bus=HelperBus),
+                Q_th=Flow(label="Qth", bus=BusTh))
     # EKT B
     EKTB = cKWK(label=label + "B", exists= exists, group = group,
                 eta_th=eta_thB, eta_el=eta_elB,
-                P_el=cFlow(label="Pel", bus=BusEl),
-                Q_fu=cFlow(label="Helper" + label + 'B', bus=HelperBus),
-                Q_th=cFlow(label="Qth", bus=BusTh))
+                P_el=Flow(label="Pel", bus=BusEl),
+                Q_fu=Flow(label="Helper" + label + 'B', bus=HelperBus),
+                Q_th=Flow(label="Qth", bus=BusTh))
     return [EKTIn, EKTA, EKTB]
 
-def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
+def KWKektB(label: str, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
             nominal_val_Qfu:float, segQth: list[float], segPel: list[float],
             costsPerFlowHour_fuel:dict=None, costsPerFlowHour_th:dict=None, costsPerFlowHour_el:dict=None,
             iCanSwitchOff=True, exists=None, group = None, investArgs:cInvestArgs=None, **kwargs)->list:
@@ -611,11 +611,11 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
     ----------
     label: str
         A string representing the label for the component.
-    BusFuel: cBus
+    BusFuel: Bus
         The bus representing the fuel input for the component.
-    BusTh: cBus
+    BusTh: Bus
         The bus representing the thermal output for the component.
-    BusEl: cBus
+    BusEl: Bus
         The bus representing the electrical output for the component.
     nominal_val_Qfu: float
         Fuel flow. Constant, But iCanSwitchOff=True
@@ -640,12 +640,12 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
     investArgs: cInvestArgs, optional
         An object containing investment-related parameters. Defaults to None. Passed to the thermal output flow
     **kwargs
-        Additional keyword arguments. Passed to the input fuel flow. Allowed keywords see documentation of cFlow
+        Additional keyword arguments. Passed to the input fuel flow. Allowed keywords see documentation of Flow
 
     Returns
     -------
     list(cBaseLinearTransformer, cBaseLinearTransformer, cBaseLinearTransformer)
-        a list of Components that need to be added to the cEnergySystem
+        a list of Components that need to be added to the EnergySystem
 
     Raises
     ------
@@ -675,27 +675,27 @@ def KWKektB(label: str, BusFuel: cBus, BusTh: cBus, BusEl: cBus,
         segQth = [0, 0] + segQth
         segPel = [0, 0] + segPel
 
-    HelperBus = cBus(label='Helper' + label + 'In', media=None,
-                     excessCostsPerFlowHour=None)  # balancing node/bus of electricity
+    HelperBus = Bus(label='Helper' + label + 'In', media=None,
+                    excessCostsPerFlowHour=None)  # balancing node/bus of electricity
 
     # Transformer 1
-    Qin = cFlow(label="Qfu", bus=BusFuel, nominal_val=nominal_val_Qfu, min_rel=1, max_rel=1,
-                costsPerFlowHour=costsPerFlowHour_fuel, **kwargs)
-    Qout = cFlow(label="Helper" + label + 'Fu', bus=HelperBus)
+    Qin = Flow(label="Qfu", bus=BusFuel, nominal_val=nominal_val_Qfu, min_rel=1, max_rel=1,
+               costsPerFlowHour=costsPerFlowHour_fuel, **kwargs)
+    Qout = Flow(label="Helper" + label + 'Fu', bus=HelperBus)
     EKTIn = cBaseLinearTransformer(label=label + "In", exists= exists, group = group,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
 
     # Transformer Strom
-    P_el = cFlow(label="Pel", bus=BusEl, nominal_val=max(segPel), costsPerFlowHour=costsPerFlowHour_el)
-    Q_fu = cFlow(label="Helper" + label + 'A', bus=HelperBus,nominal_val=nominal_val_Qfu)
+    P_el = Flow(label="Pel", bus=BusEl, nominal_val=max(segPel), costsPerFlowHour=costsPerFlowHour_el)
+    Q_fu = Flow(label="Helper" + label + 'A', bus=HelperBus, nominal_val=nominal_val_Qfu)
     segs_el = {Q_fu: segQfu_el, P_el: segPel.copy()}
     EKTA = cBaseLinearTransformer(label=label + "A", exists= exists, group = group,
                                   outputs=[P_el], inputs=[Q_fu], segmentsOfFlows=segs_el)
 
     # Transformer Wärme
-    Q_th = cFlow(label="Qth", bus=BusTh, nominal_val=max(segQth),  costsPerFlowHour=costsPerFlowHour_th,
-                 investArgs=investArgs)
-    Q_fu2 = cFlow(label="Helper" + label + 'B', bus=HelperBus)
+    Q_th = Flow(label="Qth", bus=BusTh, nominal_val=max(segQth), costsPerFlowHour=costsPerFlowHour_th,
+                investArgs=investArgs)
+    Q_fu2 = Flow(label="Helper" + label + 'B', bus=HelperBus)
     segs_th = {Q_fu2: segQfu_th, Q_th: segQth}
     EKTB = cBaseLinearTransformer(label=label + "B", exists= exists, group = group,
                                   outputs=[Q_th], inputs=[Q_fu2], segmentsOfFlows=segs_th)
@@ -718,11 +718,11 @@ class cAbwaermeHP(cBaseLinearTransformer):
             name of heatpump.
         COP : float, TS
             Coefficient of performance.
-        Q_ab : cFlow
+        Q_ab : Flow
             Heatsource input-flow.
-        P_el : cFlow
+        P_el : Flow
             electricity input-flow.
-        Q_th : cFlow
+        Q_th : Flow
             thermal output-flow.
         **kwargs : see motherclasses
         '''
@@ -744,16 +744,16 @@ class cAbwaermeHP(cBaseLinearTransformer):
         self.Q_th = Q_th
 
         # allowed medium:
-        P_el.setMediumIfNotSet(cMediumCollection.el)
-        Q_th.setMediumIfNotSet(cMediumCollection.heat)
-        Q_ab.setMediumIfNotSet(cMediumCollection.heat)
+        P_el.setMediumIfNotSet(MediumCollection.el)
+        Q_th.setMediumIfNotSet(MediumCollection.heat)
+        Q_ab.setMediumIfNotSet(MediumCollection.heat)
 
         # Plausibilität eta:
         self.eta_bounds = [0 + 1e-10, 20 - 1e-10]  # 0 < COP < 1
         helpers.checkBoundsOfParameter(COP, 'COP', self.eta_bounds, self)
 
 
-class cStorage(cBaseComponent):
+class cStorage(Component):
     """
     Klasse cStorage
     """
@@ -785,9 +785,9 @@ class cStorage(cBaseComponent):
         ----------
         label : str
             description.
-        inFlow : cFlow
+        inFlow : Flow
             ingoing flow.
-        outFlow : cFlow
+        outFlow : Flow
             outgoing flow.
         exists : array, int, None
             indicates when a component is present. Used for timing of Investments. Only contains blocks of 0 and 1.
@@ -895,14 +895,14 @@ class cStorage(cBaseComponent):
                                                 featureOn=None)  # hier gibt es kein On-Wert
 
         # Medium-Check:
-        if not (cMediumCollection.checkIfFits(inFlow.medium, outFlow.medium)):
+        if not (MediumCollection.checkIfFits(inFlow.medium, outFlow.medium)):
             raise Exception('in cStorage ' + self.label + ': input.medium = ' + str(inFlow.medium) +
                             ' and output.medium = ' + str(outFlow.medium) + ' don`t fit!')
         # TODO: chargeState0 darf nicht größer max usw. abfangen!
 
         self.isStorage = True  # for postprocessing
 
-    def declareVarsAndEqs(self, modBox:cModelBoxOfES):
+    def declareVarsAndEqs(self, modBox:EnergySystemModel):
         """
         Deklarieren von Variablen und Gleichungen
 
@@ -1071,7 +1071,7 @@ class cStorage(cBaseComponent):
         # obj.ineqs.EntwederLadenOderEntladen.addSummand(obj.vars.IchEntladeMich,1);
         # obj.ineqs.EntwederLadenOderEntladen.addRightSide(1);
 
-    def addShareToGlobals(self, globalComp: cGlobal, modBox):
+    def addShareToGlobals(self, globalComp: Global, modBox):
         """
 
         :param globalComp:
@@ -1084,12 +1084,12 @@ class cStorage(cBaseComponent):
             self.featureInvest.addShareToGlobals(globalComp, modBox)
 
 
-class cSourceAndSink(cBaseComponent):
+class cSourceAndSink(Component):
     """
     class for source (output-flow) and sink (input-flow) in one commponent
     """
-    # source : cFlow
-    # sink   : cFlow
+    # source : Flow
+    # sink   : Flow
 
     new_init_args = ['label', 'source', 'sink','avoidInAndOutAtOnce']
 
@@ -1101,9 +1101,9 @@ class cSourceAndSink(cBaseComponent):
         ----------
         label : str
             name of sourceAndSink
-        source : cFlow
+        source : Flow
             output-flow of this component
-        sink : cFlow
+        sink : Flow
             input-flow of this component
         exists : array, int, None
             indicates when a component is present. Used for timing of Investments. Only contains blocks of 0 and 1.
@@ -1173,7 +1173,7 @@ class cSourceAndSink(cBaseComponent):
             self.featureAvoidInAndOutAtOnce.doModeling(modBox, timeIndexe)
 
 
-class cSource(cBaseComponent):
+class cSource(Component):
     """
     class of a source
     """
@@ -1186,7 +1186,7 @@ class cSource(cBaseComponent):
         ----------
         label : str
             name of source
-        source : cFlow
+        source : Flow
             output-flow of source
         exists : array, int, None
             indicates when a component is present. Used for timing of Investments. Only contains blocks of 0 and 1.
@@ -1205,7 +1205,7 @@ class cSource(cBaseComponent):
         Konstruktor für Instanzen der Klasse cSource
 
         :param str label: Bezeichnung
-        :param cFlow source: flow-output Quelle
+        :param Flow source: flow-output Quelle
         :param kwargs:
         """
         super().__init__(label, **kwargs)
@@ -1228,7 +1228,7 @@ class cSource(cBaseComponent):
             flow.min_rel = cTS_vector('min_rel', flow.min_rel.d_i * flow.exists.d_i, flow)
 
 
-class cSink(cBaseComponent):
+class cSink(Component):
     """
     Klasse cSink
     """
@@ -1243,7 +1243,7 @@ class cSink(cBaseComponent):
         ----------
         label : str
             name of sink.
-        sink : cFlow
+        sink : Flow
             input-flow of sink
         exists : array, int, None
             indicates when a component is present. Used for timing of Investments. Only contains blocks of 0 and 1.
@@ -1279,7 +1279,7 @@ class cSink(cBaseComponent):
             flow.min_rel = cTS_vector('min_rel', flow.min_rel.d_i * flow.exists.d_i, flow)
 
 
-class cTransportation(cBaseComponent):
+class cTransportation(Component):
     # TODO: automatic on-Value in Flows if loss_abs
     # TODO: loss_abs must be: investment_size * loss_abs_rel!!!
     # TODO: investmentsize only on 1 flow
@@ -1306,13 +1306,13 @@ class cTransportation(cBaseComponent):
         ----------
         label : str
             name of cTransportation.
-        in1 : cFlow
+        in1 : Flow
             inflow of input at side A
-        out1 : cFlow
+        out1 : Flow
             outflow (of in1) at side B
-        in2 : cFlow, optional
+        in2 : Flow, optional
             optional inflow of side B
-        out2 : cFlow, optional
+        out2 : Flow, optional
             outflow (of in2) at side A            
         loss_rel : float, TS
             relative loss between in and out, i.g. 0.02 i.e. 2 % loss
@@ -1354,7 +1354,7 @@ class cTransportation(cBaseComponent):
             self.featureAvoidBothDirectionsAtOnce = cFeatureAvoidFlowsAtOnce('feature_avoidBothDirectionsAtOnce', self,
                                                                  [self.in1, self.in2])
 
-    def declareVarsAndEqs(self, modBox:cModelBoxOfES):
+    def declareVarsAndEqs(self, modBox:EnergySystemModel):
         """
         Deklarieren von Variablen und Gleichungen
         

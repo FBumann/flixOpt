@@ -15,7 +15,7 @@ import numpy as np
 ##############################################################  
 ## Funktionalität/Features zum Anhängen an die Komponenten: ##  
 
-class cFeature(cME):
+class cFeature(ModelingElement):
   
     def __init__(self, label, owner, **kwargs):
         self.owner = owner
@@ -27,7 +27,7 @@ class cFeature(cME):
     def label_full(self):
         return self.owner.label_full + '_' + self.label 
   
-    def finalize(self): # TODO: evtl. besser bei cME aufgehoben
+    def finalize(self): # TODO: evtl. besser bei ModelingElement aufgehoben
           super().finalize()
   
 # Abschnittsweise linear:
@@ -91,12 +91,12 @@ class cFeatureLinearSegmentVars(cFeature) :
             newSegment.createNewModAndActivateModBox(self.modBox)
             self.listOfSegments.append(newSegment)
            
-    def declareVarsAndEqs(self, modBox:cModelBoxOfES):
+    def declareVarsAndEqs(self, modBox:EnergySystemModel):
         for aSegment in self.listOfSegments :
             # Segmentvariablen erstellen:
             aSegment.declareVarsAndEqs(modBox)
     
-    def doModeling(self,modBox:cModelBoxOfES,timeIndexe):                 
+    def doModeling(self, modBox:EnergySystemModel, timeIndexe):
         #########################################
         ## 1. Gleichungen für: Nur ein Segment kann aktiv sein! ##
         # eq: -On(t) + Segment1.onSeg(t) + Segment2.onSeg(t) + ... = 0 
@@ -224,7 +224,7 @@ class cFeatureAvoidFlowsAtOnce(cFeature):
     def finalize(self):
         super().finalize
         # Beachte: Hiervor muss featureOn in den Flows existieren!
-        aFlow : cFlow
+        aFlow : Flow
     
         if self.typ == 'classic':
           # "classic" -> alle Flows brauchen Binärvariable:        
@@ -852,7 +852,7 @@ class cFeatureInvest(cFeature):
             (val = val_rel * investmentSize)
         investmentSize : scalar or None
             value of fixed investmentSize (None if no fixed investmentSize)
-            cFlow: investmentSize = nominal_val
+            Flow: investmentSize = nominal_val
             cStorage: investmentSize = 
         featureOn : cFeatureOn
             cFeatureOn of the definingVar (if it has a cFeatureOn)
@@ -978,7 +978,7 @@ class cFeatureInvest(cFeature):
             self.featureLinearSegments.declareVarsAndEqs(modBox)
        
     # definingInvestcosts in Segments:
-    def _defineCostSegments(self, modBox:cModelBoxOfES):
+    def _defineCostSegments(self, modBox:EnergySystemModel):
         investSizeSegs = self.args.costsInInvestsizeSegments[0] # segments of investSize
         costSegs       = self.args.costsInInvestsizeSegments[1] # effect-dict with segments as entries
         costSegs = getEffectDictOfEffectValues(costSegs)
@@ -1007,7 +1007,7 @@ class cFeatureInvest(cFeature):
        
     def __create_var_segmentedInvestCost(self, aEffect, modBox):
         # define cost-Variable (=costs through segmented Investsize-costs):
-        if isinstance(aEffect, cEffectType):
+        if isinstance(aEffect, Effect):
             aStr = aEffect.label
         elif aEffect is None:
             aStr = modBox.es.listOfEffectTypes.standardType().label # Standard-Effekt

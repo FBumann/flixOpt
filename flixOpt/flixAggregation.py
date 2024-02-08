@@ -299,7 +299,7 @@ from . import flixStructure
 from . import flixComps
 from .basicModeling import *
 # ModelingElement mit Zusatz-Glg. und Variablen für aggregierte Berechnung
-class cAggregationModeling(flixStructure.cME):     
+class cAggregationModeling(flixStructure.ModelingElement):
   def __init__(self,label, es, indexVectorsOfClusters, fixStorageFlows = True, fixBinaryVarsOnly=True, listOfMEsToClusterize = None, percentageOfPeriodFreedom = 0, costsOfPeriodFreedom = 0, **kwargs):
       '''
       Modeling-Element for "index-equating"-equations
@@ -331,7 +331,7 @@ class cAggregationModeling(flixStructure.cME):
       None.
 
       '''
-      es: flixStructure.cEnergySystem           
+      es: flixStructure.EnergySystem
       self.es = es
       self.indexVectorsOfClusters = indexVectorsOfClusters
       self.fixStorageFlows = fixStorageFlows
@@ -353,11 +353,11 @@ class cAggregationModeling(flixStructure.cME):
     super().finalize()
 
     
-  def declareVarsAndEqs(self, modBox:flixStructure.cModelBoxOfES):
+  def declareVarsAndEqs(self, modBox:flixStructure.EnergySystemModel):
     super().declareVarsAndEqs(modBox)
    
       
-  def doModeling(self,modBox:flixStructure.cModelBoxOfES,timeIndexe):        
+  def doModeling(self, modBox:flixStructure.EnergySystemModel, timeIndexe):
 
     if self.listOfMEsToClusterize is None:
       # Alle:
@@ -370,7 +370,7 @@ class cAggregationModeling(flixStructure.cME):
     
 
     
-    flow : flixStructure.cFlow
+    flow : flixStructure.Flow
     
     # todo: hier anstelle alle MEs durchgehen, nicht nur flows und comps:
     for aME in flowSet | compSet :
@@ -462,7 +462,7 @@ class cAggregationModeling(flixStructure.cME):
     return eq
 
     
-  def addShareToGlobals(self,globalComp:flixStructure.cGlobal,modBox) :       
+  def addShareToGlobals(self, globalComp:flixStructure.Global, modBox) :
     
     # einzelne Stellen korrigierbar machen (aber mit Kosten)
     if (self.percentageOfPeriodFreedom > 0) & (self.costsOfPeriodFreedom!= 0):

@@ -18,7 +18,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-class cModelBoxOfES(cBaseModel):  
+class EnergySystemModel(cBaseModel):
     '''
     Hier kommen die ModellingLanguage-spezifischen Sachen rein
     '''
@@ -33,7 +33,7 @@ class cModelBoxOfES(cBaseModel):
     
     def __init__(self, label, aModType, es, esTimeIndexe, TS_explicit = None):
         super().__init__(label, aModType)
-        self.es: cEnergySystem
+        self.es: EnergySystem
         self.es = es  # energysystem (wäre Attribut von cTimePeriodModel)
         self.esTimeIndexe = esTimeIndexe
         self.nrOfTimeSteps = len(esTimeIndexe)
@@ -210,7 +210,7 @@ class cModelBoxOfES(cBaseModel):
         helpers.printDictAndList(self.main_results_str)
         
       
-class cEnergySystem:
+class EnergySystem:
     
     ''' 
     Handles the energy system as a model.
@@ -263,7 +263,7 @@ class cEnergySystem:
     # get all TS in one list:
     @property
     def allTSinMEs(self):
-        ME : cMEModel
+        ME : ElementModelDetails
         allTS = []
         for ME in self.allMEsOfFirstLayer:
             allTS += ME.TS_list
@@ -303,12 +303,12 @@ class cEnergySystem:
         # defaults: 
         self.listOfComponents = []        
         self.setOfOtherMEs    = set()  ## hier kommen zusätzliche MEs rein, z.B. aggregation
-        self.listOfEffectTypes  = cEffectTypeList() # Kosten, CO2, Primärenergie, ...
+        self.listOfEffectTypes  = EffectCollection() # Kosten, CO2, Primärenergie, ...
         self.AllTempMEs       = [] # temporary elements, only valid for one calculation (i.g. aggregation modeling)
         self.standardEffect   = None # Standard-Effekt, zumeist Kosten
         self.objectiveEffect  = None # Zielfunktions-Effekt, z.B. Kosten oder CO2
         # instanzieren einer globalen Komponente (diese hat globale Gleichungen!!!)
-        self.globalComp       = cGlobal('globalComp')
+        self.globalComp       = Global('globalComp')
         self.__finalized      = False # wenn die MEs alle finalisiert sind, dann True
         self.modBox           = None # later activated
         # # global sollte das erste Element sein, damit alle anderen Componenten darauf zugreifen können: 
@@ -320,7 +320,7 @@ class cEnergySystem:
     # Effekte registrieren:
     def addEffects(self,*args):
       newListOfEffects = list(args)
-      aNewEffect : cEffect
+      aNewEffect : Effect
       for aNewEffect in newListOfEffects:       
         print('Register new effect ' + aNewEffect.label)
         # check if already exists:
@@ -343,7 +343,7 @@ class cEnergySystem:
     def addComponents(self,*args):
       
       newListOfComps = list(args)
-      aNewComp : cBaseComponent
+      aNewComp : Component
       # für alle neuen Komponenten:
       for aNewComp in newListOfComps:                      
         # Check ob schon vorhanden:
@@ -371,25 +371,25 @@ class cEnergySystem:
 
         Parameters
         ----------
-        *args : childs of   cME like cBoiler, cHeatPump, cBus,...
+        *args : childs of   ModelingElement like cBoiler, cHeatPump, Bus,...
             modeling Elements
 
         '''
         
         newList = list(args)
         for aNewME in newList:
-            if    isinstance(aNewME, cBaseComponent):
+            if    isinstance(aNewME, Component):
                 self.addComponents(aNewME)
-            elif isinstance(aNewME, cEffectType):
+            elif isinstance(aNewME, Effect):
                 self.addEffects(aNewME)
-            elif isinstance(aNewME, cME):
+            elif isinstance(aNewME, ModelingElement):
                 # check if already exists:
                 self._checkIfUniqueElement(aNewME, self.setOfOtherMEs)
                 # register ME:
                 self.setOfOtherMEs.add(aNewME)
 
             else: 
-                raise Exception('argument is not instance of a modeling Element (cME)')
+                raise Exception('argument is not instance of a modeling Element (ModelingElement)')
     
     def addTemporaryElements(self,*args):
         '''
@@ -398,7 +398,7 @@ class cEnergySystem:
 
         Parameters
         ----------
-        *args : cME
+        *args : ModelingElement
             temporary modeling Elements.
 
         '''
@@ -424,7 +424,7 @@ class cEnergySystem:
 
         Parameters
         ----------
-        aElement : cME
+        aElement : ModelingElement
             new element to check
         listOfExistingLists : list
             list of already registered elements
@@ -487,7 +487,7 @@ class cEnergySystem:
       
       # Komponenten-Modellierung (# inklusive subMEs!)
       for aComp in self.listOfComponents: 
-        aComp : cBaseComponent
+        aComp : Component
         log.debug('model ' + aComp.label + '...')
         # todo: ...OfFlows() ist nicht schön --> besser als rekursive Geschichte aller subModelingElements der Komponente umsetzen z.b. 
         aComp.declareVarsAndEqsOfFlows(self.modBox)
@@ -500,7 +500,7 @@ class cEnergySystem:
         aComp.addShareToGlobals        (self.globalComp, self.modBox)
                 
       # Bus-Modellierung (# inklusive subMEs!)
-      aBus : cBus
+      aBus : Bus
       for aBus in self.setOfBuses:
         log.debug('model ' + aBus.label + '...')
         aBus.declareVarsAndEqs(  self.modBox)
@@ -537,8 +537,8 @@ class cEnergySystem:
           
     def activateModBox(self, aModBox) :   
       self.modBox = aModBox
-      aModBox : cModelBoxOfES      
-      aME     : cME
+      aModBox : EnergySystemModel
+      aME     : ModelingElement
       
       # hier nochmal TS updaten (teilweise schon für Preprozesse gemacht):
       self.activateInTS(aModBox.esTimeIndexe, aModBox.TS_explicit)
@@ -578,8 +578,8 @@ class cEnergySystem:
       return results, results_var
            
     def printModel(self):   
-      aBus  : cBus
-      aComp : cBaseComponent
+      aBus  : Bus
+      aComp : Component
       print('')               
       print('##############################################################')
       print('########## Short String Description of Energysystem ##########')
@@ -594,11 +594,11 @@ class cEnergySystem:
       # Buses:
       modelDescription['buses'] = {}
       for aBus in self.setOfBuses:     
-        aBus:cBus
+        aBus:Bus
         modelDescription['buses'].update(aBus.getDescrAsStr())
       # Comps:
       modelDescription['components'] = {}
-      aComp : cBaseComponent
+      aComp : Component
       for aComp in self.listOfComponents:        
         modelDescription['components'].update(aComp.getDescrAsStr())
 
@@ -606,7 +606,7 @@ class cEnergySystem:
       # Flows: 
       flowList = []
       modelDescription['flows'] = flowList
-      aFlow : cFlow
+      aFlow : Flow
       for aFlow in self.setOfFlows:
         flowList.append(aFlow.getStrDescr())
       
@@ -618,7 +618,7 @@ class cEnergySystem:
       # comps:
       aSubDict = {}      
       aDict['Components'] = aSubDict
-      aComp : cME      
+      aComp : ModelingElement
       for aComp in self.listOfComponents:
         aSubDict[aComp.label] = aComp.getEqsAsStr()
 
@@ -736,7 +736,7 @@ class cEnergySystem:
       return (timeSeries, timeSeriesWithEnd, dtInHours, dtInHours_tot)
 
 # Standardoptimierung segmentiert/nicht segmentiert
-class cCalculation :
+class EnergySystemCalculation :
     '''
     class for defined way of solving a energy system optimizatino
     '''
@@ -783,16 +783,16 @@ class cCalculation :
               raise Exception ('calcType ' + str(self.calcType) + ' not defined')
       return self.__results_struct
     
-    es: cEnergySystem
+    es: EnergySystem
     # chosenEsTimeIndexe: die Indexe des Energiesystems, die genutzt werden sollen. z.B. [0,1,4,6,8]
-    def __init__(self, label, es : cEnergySystem, modType, chosenEsTimeIndexe = None, pathForSaving = '/results',):
+    def __init__(self, label, es : EnergySystem, modType, chosenEsTimeIndexe = None, pathForSaving ='/results', ):
         '''
         Parameters
         ----------
         label : str
             name of calculation
-        es : cEnergySystem
-            energysystem which should be calculated
+        es : EnergySystem
+            Energy System which should be calculated
         modType : 'pyomo','cvxpy' (not implemeted yet)
             choose optimization modeling language
         chosenEsTimeIndexe : None, list
@@ -844,7 +844,7 @@ class cCalculation :
       
       t_start = time.time()
       # Modellierungsbox / TimePeriod-Box bauen:
-      aModBox  = cModelBoxOfES(self.label, self.modType, self.es, self.chosenEsTimeIndexe) # alle Indexe nehmen!               
+      aModBox  = EnergySystemModel(self.label, self.modType, self.es, self.chosenEsTimeIndexe) # alle Indexe nehmen!
       # modBox aktivieren:
       self.es.activateModBox(aModBox)
       # modellieren:
@@ -944,7 +944,7 @@ class cCalculation :
      
         # Modellierungsbox / TimePeriod-Box bauen:
         label = self.label + '_seg' + str(i)
-        segmentModBox  = cModelBoxOfES(label, self.modType, self.es, indexe_global) # alle Indexe nehmen!       
+        segmentModBox  = EnergySystemModel(label, self.modType, self.es, indexe_global) # alle Indexe nehmen!
         segmentModBox.realNrOfUsedSteps = realNrOfUsedSteps
   
         # Startwerte übergeben von Vorgänger-Modbox:
@@ -1178,7 +1178,7 @@ class cCalculation :
     
         t_m_start = time.time()    
         # Modellierungsbox / TimePeriod-Box bauen: ! inklusive TS_explicit!!!
-        aModBox  = cModelBoxOfES(self.label, self.modType, self.es, self.chosenEsTimeIndexe, TS_explicit) # alle Indexe nehmen!               
+        aModBox  = EnergySystemModel(self.label, self.modType, self.es, self.chosenEsTimeIndexe, TS_explicit) # alle Indexe nehmen!
         self.listOfModbox.append(aModBox)
         # modBox aktivieren:
         self.es.activateModBox(aModBox)
@@ -1237,7 +1237,7 @@ class cCalculation :
     def checkIfAlreadyModeled(self):
       
       if self.calcType is not None:
-        raise Exception('An other modeling-Method (calctype: ' + self.calcType + ') was already executed with this cCalculation-Object. \n Always create a new instance of cCalculation for new modeling/solving-command!')
+        raise Exception('An other modeling-Method (calctype: ' + self.calcType + ') was already executed with this EnergySystemCalculation-Object. \n Always create a new instance of EnergySystemCalculation for new modeling/solving-command!')
   
       if self.es.AllTempMEs: # if some element in this list
           raise Exception('the Energysystem has some temporary modelingElements from previous calculation (i.g. aggregation-Modeling-Elements. These must be deleted before new calculation.')
@@ -1335,9 +1335,9 @@ class cCalculation :
       # results füllen:
       # ....
   
-class cMEModel:
+class ElementModelDetails:
     '''
-    is existing in every cME and owns eqs and vars of the activated calculation
+    is existing in every ModelingElement and owns eqs and vars of the activated calculation
     '''
     
     
@@ -1380,16 +1380,16 @@ class cMEModel:
                   allow_unicode=True)
 
 
-class cME(cArgsClass):
+class ModelingElement(cArgsClass):
     """
     Element mit Variablen und Gleichungen (ME = Modeling Element)
     -> besitzt Methoden, die jede Kindklasse ergänzend füllt:
-    1. cME.finalize()          --> Finalisieren der Modell-Beschreibung (z.B. notwendig, wenn Bezug zu Elementen, die bei __init__ noch gar nicht bekannt sind)
-    2. cME.declareVarsAndEqs() --> Variablen und Eqs definieren.
-    3. cME.doModeling()        --> Modellierung
-    4. cME.addShareToGlobals() --> Beitrag zu Gesamt-Kosten
+    1. ModelingElement.finalize()          --> Finalisieren der Modell-Beschreibung (z.B. notwendig, wenn Bezug zu Elementen, die bei __init__ noch gar nicht bekannt sind)
+    2. ModelingElement.declareVarsAndEqs() --> Variablen und Eqs definieren.
+    3. ModelingElement.doModeling()        --> Modellierung
+    4. ModelingElement.addShareToGlobals() --> Beitrag zu Gesamt-Kosten
     """
-    modBox : cModelBoxOfES
+    modBox : EnergySystemModel
     
     new_init_args = ['label']
     not_used_args = [] 
@@ -1443,12 +1443,12 @@ class cME(cArgsClass):
     def createNewModAndActivateModBox(self, modBox):    
       # print('new mod for ' + self.label)
       # subElemente ebenso:
-      aME:cME
+      aME:ModelingElement
       for aME in self.subElements:
         aME.createNewModAndActivateModBox(modBox) # rekursiv!
       
       # create mod:
-      aMod = cMEModel(self)
+      aMod = ElementModelDetails(self)
       # register mod:
       modBox.registerMEandMod(self, aMod)         
       
@@ -1562,7 +1562,7 @@ class cME(cArgsClass):
         return aDict
 
 
-class cEffectType(cME):
+class Effect(ModelingElement):
     '''
     Effect, i.g. costs, CO2 emissions, area, ...
     can be used later afterwards for allocating effects to compontents and flows.
@@ -1669,13 +1669,13 @@ class cEffectType(cME):
 
 
 # Liste mit zusätzlicher Methode für Rückgabe Standard-Element:
-class cEffectTypeList(list):
+class EffectCollection(list):
     '''
     internal effect list for simple handling of effects
     '''
     # return standard effectType:
     def standardType(self):
-        aEffect : cEffectType
+        aEffect : Effect
         aStandardEffect = None
         # TODO: eleganter nach attribut suchen:
         for aEffectType in self:
@@ -1683,7 +1683,7 @@ class cEffectTypeList(list):
         return aStandardEffect
     
     def objectiveEffect(self):
-        aEffect : cEffectType
+        aEffect : Effect
         aObjectiveEffect = None
         # TODO: eleganter nach attribut suchen:
         for aEffectType in self:
@@ -1693,11 +1693,11 @@ class cEffectTypeList(list):
     
 from .flixFeatures import *
 # Beliebige Komponente (:= Element mit Ein- und Ausgängen)
-class cBaseComponent(cME):
+class Component(ModelingElement):
     ''' 
     basic component class for all components
     '''    
-    modBox : cModelBoxOfES
+    modBox : EnergySystemModel
     new_init_args = ['label', 'on_valuesBeforeBegin', 'switchOnCosts', 'switchOn_maxNr', 'onHoursSum_min','onHoursSum_max', 'costsPerRunningHour']
     not_used_args = ['label']
     def __init__(self, label, on_valuesBeforeBegin = [0,0], switchOnCosts = None, switchOn_maxNr = None, onHoursSum_min = None, onHoursSum_max = None, costsPerRunningHour = None, **kwargs) :            
@@ -1715,11 +1715,11 @@ class cBaseComponent(cME):
 
         on_valuesBeforeBegin :  array (TODO: why not scalar?)
             Ein(1)/Aus(0)-Wert vor Zeitreihe
-        switchOnCosts : look in cFlow for description
-        switchOn_maxNr : look in cFlow for description
-        onHoursSum_min : look in cFlow for description
-        onHoursSum_max : look in cFlow for description
-        costsPerRunningHour : look in cFlow for description
+        switchOnCosts : look in Flow for description
+        switchOn_maxNr : look in Flow for description
+        onHoursSum_min : look in Flow for description
+        onHoursSum_max : look in Flow for description
+        costsPerRunningHour : look in Flow for description
         **kwargs : TYPE
             DESCRIPTION.
 
@@ -1762,7 +1762,7 @@ class cBaseComponent(cME):
       for aFlow in self.inputs + self.outputs:
         aFlow.comp = self  
 
-    def registerFlowsInBus(self): # todo: macht aber bei Kindklasse cBus keinen Sinn!
+    def registerFlowsInBus(self): # todo: macht aber bei Kindklasse Bus keinen Sinn!
       #          
       # ############## register in Bus: ##############
       #          
@@ -1774,12 +1774,12 @@ class cBaseComponent(cME):
         aFlow.bus.registerInputFlow(aFlow)
 
 
-    def declareVarsAndEqsOfFlows(self,modBox): # todo: macht aber bei Kindklasse cBus keinen Sinn!
+    def declareVarsAndEqsOfFlows(self,modBox): # todo: macht aber bei Kindklasse Bus keinen Sinn!
       # Flows modellieren:        
       for aFlow in self.inputs + self.outputs:
         aFlow.declareVarsAndEqs(modBox)
       
-    def doModelingOfFlows(self,modBox,timeIndexe): # todo: macht aber bei Kindklasse cBus keinen Sinn!
+    def doModelingOfFlows(self,modBox,timeIndexe): # todo: macht aber bei Kindklasse Bus keinen Sinn!
       # Flows modellieren:        
       for aFlow in self.inputs + self.outputs:
         aFlow.doModeling(modBox,timeIndexe)
@@ -1792,7 +1792,7 @@ class cBaseComponent(cME):
       # Variablen der In-/Out-Puts ergänzen:
       for aFlow in self.inputs + self.outputs :        
         # z.B. results['Q_th'] = {'val':..., 'on': ..., ...}
-        if isinstance(self, cBus):
+        if isinstance(self, Bus):
           flowLabel = aFlow.label_full # Kessel_Q_th
         else:
           flowLabel = aFlow.label      # Q_th
@@ -1843,11 +1843,11 @@ class cBaseComponent(cME):
       
       descr = {}
       inhalt = {'In-Flows':[],'Out-Flows':[]}
-      aFlow : cFlow
+      aFlow : Flow
       
       descr[self.label] = inhalt
       
-      if isinstance(self, cBus): 
+      if isinstance(self, Bus):
         descrType = 'for bus-list'
       else :
         descrType = 'for comp-list'
@@ -1872,13 +1872,13 @@ class cBaseComponent(cME):
       return descr
     
     def print(self,shiftChars):
-      aFlow : cFlow
+      aFlow : Flow
       print(yaml.dump(self.getDescrAsStr(), allow_unicode = True))
       
 
 
 # komponenten übergreifende Gleichungen/Variablen/Zielfunktion!
-class cGlobal(cME):
+class Global(ModelingElement):
     ''' 
     storing global modeling stuff like effect equations and optimization target
     '''
@@ -1927,7 +1927,7 @@ class cGlobal(cME):
       # an alle Effekttypen, die einen Wert haben, anhängen:
       for effectType, value in effect_values_dict.items():                 
         # Falls None, dann Standard-effekt nutzen:
-        effectType : cEffectType
+        effectType : Effect
         if effectType is None : effectType = self.listOfEffectTypes.standardType()
         elif effectType not in self.listOfEffectTypes:
           raise Exception('Effect \'' + effectType.label + '\' was not added to model (but used in some costs)!')        
@@ -1998,7 +1998,7 @@ class cGlobal(cME):
       self.objective.addSummand(objectiveEffect.operation.mod.var_sum, 1)
       self.objective.addSummand(objectiveEffect.invest   .mod.var_sum ,1)
             
-class cBus(cBaseComponent): # sollte das wirklich geerbt werden oder eher nur cME???
+class Bus(Component): # sollte das wirklich geerbt werden oder eher nur ModelingElement???
     '''
     realizing balance of all linked flows
     (penalty flow is excess can be activated)
@@ -2063,7 +2063,7 @@ class cBus(cBaseComponent): # sollte das wirklich geerbt werden oder eher nur cM
         # wenn leer, d.h. kein gemeinsamer Eintrag:    
         if (aFlow.medium is not None) and (self.media is not None) and \
             (not (aFlow.medium in self.media)):
-            raise Exception('in cBus ' + self.label + ' : registerFlow(): medium \'' 
+            raise Exception('in Bus ' + self.label + ' : registerFlow(): medium \''
                             + str(aFlow.medium) + '\' of ' + aFlow.label_full + 
                             ' and media ' + str(self.media) + ' of bus ' + 
                             self.label_full + '  have no common medium!' + 
@@ -2111,10 +2111,10 @@ class cBus(cBaseComponent): # sollte das wirklich geerbt werden oder eher nur cM
 
 
  # Medien definieren:
-class cMediumCollection:
+class MediumCollection:
     '''
     attributes are defined possible media for flow (not tested!) TODO!
-    you can use them, i.g. cMediumCollection.heat or you can explicitly work with strings (i.g. 'heat')
+    you can use them, i.g. MediumCollection.heat or you can explicitly work with strings (i.g. 'heat')
     '''
     # predefined medium: (just the string is used for comparison)
     heat    = 'heat' # set(['heat'])
@@ -2131,7 +2131,7 @@ class cMediumCollection:
         attrName : str
         strOfMedium : str
         '''
-        cMediumCollection.setattr(attrName, strOfMedium)
+        MediumCollection.setattr(attrName, strOfMedium)
       
     # checkifFits(medium1,medium2,...)
     def checkIfFits(*args):
@@ -2145,12 +2145,12 @@ class cMediumCollection:
 class cIO(): 
     pass
     # -> wäre cool, damit Komponenten auch auch ohne Knoten verbindbar
-    # input wären wie cFlow,aber statt bus : connectsTo -> hier andere cIO oder aber Bus (dort keine cIO, weil nicht notwendig)
+    # input wären wie Flow,aber statt bus : connectsTo -> hier andere cIO oder aber Bus (dort keine cIO, weil nicht notwendig)
   
   
 # todo: könnte Flow nicht auch von Basecomponent erben. Hat zumindest auch Variablen und Eqs  
 # Fluss/Strippe
-class cFlow(cME):
+class Flow(ModelingElement):
     '''
     flows are inputs and outputs of components
     '''
@@ -2168,7 +2168,7 @@ class cFlow(cME):
 
     @property #Richtung
     def isInputInComp(self):
-        comp : cBaseComponent
+        comp : Component
         if self in self.comp.inputs:
             return True
         else:
@@ -2195,23 +2195,23 @@ class cFlow(cME):
     #static var:
     __nominal_val_default = 1e9 # Großer Gültigkeitsbereich als Standard
     
-    def __init__(self,label, 
-                 bus:cBus=None , 
+    def __init__(self, label,
+                 bus:Bus=None,
                  min_rel = 0, max_rel = 1,
-                 nominal_val = __nominal_val_default ,
-                 loadFactor_min = None, loadFactor_max = None, 
-                 positive_gradient = None, 
-                 costsPerFlowHour = None ,
+                 nominal_val = __nominal_val_default,
+                 loadFactor_min = None, loadFactor_max = None,
+                 positive_gradient = None,
+                 costsPerFlowHour = None,
                  iCanSwitchOff = True,
-                 onHoursSum_min = None, onHoursSum_max= None, 
+                 onHoursSum_min = None, onHoursSum_max= None,
                  onHours_min = None, onHours_max = None,
                  offHours_min = None, offHours_max = None,
-                 switchOnCosts = None, 
-                 switchOn_maxNr = None, 
-                 costsPerRunningHour =None, 
-                 sumFlowHours_max = None, sumFlowHours_min = None, 
-                 valuesBeforeBegin = [0,0], 
-                 val_rel = None, 
+                 switchOnCosts = None,
+                 switchOn_maxNr = None,
+                 costsPerRunningHour =None,
+                 sumFlowHours_max = None, sumFlowHours_min = None,
+                 valuesBeforeBegin = [0,0],
+                 val_rel = None,
                  medium = None,
                  investArgs = None,
                  exists = 1,
@@ -2222,7 +2222,7 @@ class cFlow(cME):
         ----------
         label : str
             name of flow
-        bus : cBus, optional
+        bus : Bus, optional
             bus to which flow is linked
         min_rel : scalar, array, cTSraw, optional
             min value is min_rel multiplied by nominal_val
@@ -2325,7 +2325,7 @@ class cFlow(cME):
         else:
           # Check:
           # Wenn noch nominal_val noch Default, aber investmentSize nicht optimiert werden soll:
-          if (self.nominal_val == cFlow.__nominal_val_default) and \
+          if (self.nominal_val == Flow.__nominal_val_default) and \
              ((investArgs is None) or (investArgs.investmentSize_is_fixed == True)): 
             # Fehlermeldung:
             raise Exception('Achtung: Wenn val_ref genutzt wird, muss zugehöriges nominal_val definiert werden, da: value = val_ref * nominal_val!')
@@ -2396,7 +2396,7 @@ class cFlow(cME):
         super().finalize()
 
       
-    def declareVarsAndEqs(self, modBox:cModelBoxOfES):
+    def declareVarsAndEqs(self, modBox:EnergySystemModel):
         print('declareVarsAndEqs ' + self.label)
         super().declareVarsAndEqs(modBox)
       
@@ -2447,7 +2447,7 @@ class cFlow(cME):
           self.featureInvest.setDefiningVar(self.mod.var_val, self.mod.var_on)
           self.featureInvest.declareVarsAndEqs(modBox)
           
-    def doModeling(self,modBox:cModelBoxOfES,timeIndexe):        
+    def doModeling(self, modBox:EnergySystemModel, timeIndexe):
         # super().doModeling(modBox,timeIndexe)
  
         # for aFeature in self.features:
@@ -2539,7 +2539,7 @@ class cFlow(cME):
         # z.B. max_PEF, max_CO2, ...
               
       
-    def addShareToGlobals(self, globalComp:cGlobal, modBox) :
+    def addShareToGlobals(self, globalComp:Global, modBox) :
         
         # Arbeitskosten:
         if self.costsPerFlowHour is not None: 

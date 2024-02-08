@@ -8,10 +8,10 @@ developed by Felix Panitz* and Peter Stange*
 
 import numpy as np
 from . import flixOptHelperFcts as helpers
-from .flixBasicsPublic import cTSraw
+from .flixBasicsPublic import TimeSeriesData
 
 
-class cArgsClass:
+class BaseArgumentClass:
     '''
     stellt Infrastruktur getInitArgs() etc zur Verfügung: 
         TODO: geht das nicht irgendwie nativ? noch notwendig?
@@ -28,11 +28,11 @@ class cArgsClass:
   
       ### 1. Argumente der Mutterklasse (rekursiv) ###
       # wird rekursiv aufgerufen bis man bei Mutter-Klasse cModelingElement ankommt.
-      # nur bis zu cArgsClass zurück gehen:
-      if hasattr(cls.__base__,'getInitArgs'):#man könnte auch schreiben: if cls.__name__ == cArgsClass  
+      # nur bis zu BaseArgumentClass zurück gehen:
+      if hasattr(cls.__base__,'getInitArgs'):#man könnte auch schreiben: if cls.__name__ == BaseArgumentClass
         allArgsFromMotherClass = cls.__base__.getInitArgs()  # rekursiv in Mutterklasse aufrufen
       
-      # wenn cls.__base__ also bereits eine Ebene UNTER cArgsClass:
+      # wenn cls.__base__ also bereits eine Ebene UNTER BaseArgumentClass:
       else:
         allArgsFromMotherClass = []    
       
@@ -62,7 +62,7 @@ class cArgsClass:
                                             raise Exception('class and its motherclasses have no allowed arguments for:' + str(kwargs)[:200])
      
 
-class cTS_vector:  
+class TimeSeriesVector:
     '''
     Klasse für Timeseries-Vektoren bzw. Skalare, die für Zeitreihe gelten
     '''
@@ -110,14 +110,14 @@ class cTS_vector:
       Parameters
       ----------
       value : 
-          scalar, array or cTSraw!
+          scalar, array or TimeSeriesData!
       owner : 
       '''
       self.label  = label
       self.owner = owner
       
-      # if value is cTSraw, then extract value:
-      if isinstance(value, cTSraw):
+      # if value is TimeSeriesData, then extract value:
+      if isinstance(value, TimeSeriesData):
           self.TSraw = value
           value = self.TSraw.value # extract value
       else:
@@ -177,11 +177,11 @@ class cTS_vector:
     
     # Rückgabe Maximum
     def max(self):
-      return cTS_vector.__getMax(self.d)    
+      return TimeSeriesVector.__getMax(self.d)
     
     # Maximum für indexe:
     def max_i(self):
-      return cTS_vector.__getMax(self.d_i)    
+      return TimeSeriesVector.__getMax(self.d_i)
     
     def __getMax(aValue):
       if np.isscalar(aValue):
@@ -190,7 +190,7 @@ class cTS_vector:
         return max(aValue)
 
 
-class cTS_collection():
+class TimeSeriesCollection():
     '''
     calculates weights of TS_vector for being in that collection (depending on)
     '''
@@ -229,7 +229,7 @@ class cTS_collection():
 
     def calculateParametersForTSAM(self):
         for i in range(len(self.listOfTS_vectors)):
-            aTS : cTS_vector
+            aTS : TimeSeriesVector
             aTS = self.listOfTS_vectors[i]
             # check uniqueness of label:
             if aTS.label_full in self.seriesDict.keys():
@@ -256,14 +256,14 @@ class cTS_collection():
         return Counter(agg_types)    
     
     
-    def _get_agg_type(self, aTS:cTS_vector):
+    def _get_agg_type(self, aTS:TimeSeriesVector):
         if (aTS.TSraw is not None) :
             agg_type = aTS.TSraw.agg_type
         else:
             agg_type = None
         return agg_type
     
-    def _getWeight(self, aTS:cTS_vector):
+    def _getWeight(self, aTS:TimeSeriesVector):
         if aTS.TSraw is None:
             # default:
             weight = 1
@@ -282,8 +282,8 @@ class cTS_collection():
     def _checkPeak_TSraw(self, aTSrawlist):
         if aTSrawlist is not None:
             for aTSraw in aTSrawlist:
-                if not isinstance(aTSraw,cTSraw):
-                    raise Exception('addPeak_max/min must be list of cTSraw-objects!')
+                if not isinstance(aTSraw, TimeSeriesData):
+                    raise Exception('addPeak_max/min must be list of TimeSeriesData-objects!')
         
     def print(self): 
         print('used ' + str(len(self.listOfTS_vectors)) + ' TS for aggregation:')    
@@ -335,7 +335,7 @@ def getEffectDictOfEffectValues(effect_values):
 
 def transformDictValuesToTS(nameOfParam, aDict, owner):
   '''
-    transformiert Wert -> cTS_vector   
+    transformiert Wert -> TimeSeriesVector
     für alle {Effekt:Wert}-couples in dict, 
 
     Parameters
@@ -345,7 +345,7 @@ def transformDictValuesToTS(nameOfParam, aDict, owner):
     aDict : dict
         {Effect:value}-couples
     owner : class
-        class where cTS_vector belongs to
+        class where TimeSeriesVector belongs to
 
     Returns
     -------
@@ -361,14 +361,14 @@ def transformDictValuesToTS(nameOfParam, aDict, owner):
     aDict_TS = None
   else:
     for effect, value in aDict.items():
-      if not isinstance(value, cTS_vector):
+      if not isinstance(value, TimeSeriesVector):
         # Subnamen aus key:
         if effect is None:
           subname = 'standard' # Standard-Effekt o.ä. # todo: das ist nicht schön, weil costs in Namen nicht auftaucht
         else:
           subname = effect.label # z.B. costs, Q_th,...
         nameOfParam_full   = nameOfParam + '_' + subname # name ergänzen mit key.label
-        aDict_TS[effect] = cTS_vector(nameOfParam_full, value, owner) # Transform to TS    
+        aDict_TS[effect] = TimeSeriesVector(nameOfParam_full, value, owner) # Transform to TS
     return aDict_TS
   
 

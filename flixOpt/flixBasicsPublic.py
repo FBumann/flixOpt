@@ -5,8 +5,8 @@ developed by Felix Panitz* and Peter Stange*
 * at Chair of Building Energy Systems and Heat Supply, Technische Universität Dresden
 """
 
-# Anmerkung: cTSraw separat von cTS_vector wg. Einfachheit für Anwender
-class cTSraw:
+# Anmerkung: TimeSeriesData separat von TimeSeriesVector wg. Einfachheit für Anwender
+class TimeSeriesData:
     '''
     timeseries class for transmit timeseries AND special characteristics of timeseries, 
     i.g. to define weights needed in calcType 'aggregated'
@@ -36,7 +36,7 @@ class cTSraw:
     
 
 # Sammlung von Props für Investitionskosten (für cFeatureInvest)
-class cInvestArgs:
+class InvestmentParameters:
     '''
     collects arguments for invest-stuff
     '''

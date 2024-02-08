@@ -51,14 +51,14 @@ class EnergySystemModel(BaseModel):
         # Zeitdaten generieren:
         (self.timeSeries, self.timeSeriesWithEnd, self.dtInHours, self.dtInHours_tot) =  es.getTimeDataOfTimeIndexe(esTimeIndexe)
   
-    # extract mod of ME:
+    # extract vars_and_eqs of ME:
     def getModOfME(self, aModelingElement):
         return self.ME_mod[aModelingElement]
   
     # register ModelingElements and belonging Mod:
     def registerMEandMod(self, aModelingElement, aMod):
-        # allocation ME -> mod
-        self.ME_mod[aModelingElement] = aMod # aktuelles mod hier speichern
+        # allocation ME -> vars_and_eqs
+        self.ME_mod[aModelingElement] = aMod # aktuelles vars_and_eqs hier speichern
    
     # override:
     def _charactarizeProblem(self): # overriding same method in motherclass!
@@ -134,13 +134,13 @@ class EnergySystemModel(BaseModel):
         print('')
         for aEffect in self.es.globalComp.listOfEffectTypes:
             print(aEffect.label +  ' in ' + aEffect.unit + ':')
-            print('  operation: ' + str(aEffect.operation.mod.var_sum.getResult())) 
-            print('  invest   : ' + str(aEffect.invest   .mod.var_sum.getResult())) 
-            print('  sum      : ' + str(aEffect.all      .mod.var_sum.getResult())) 
+            print('  operation: ' + str(aEffect.operation.vars_and_eqs.var_sum.getResult()))
+            print('  invest   : ' + str(aEffect.invest   .vars_and_eqs.var_sum.getResult()))
+            print('  sum      : ' + str(aEffect.all      .vars_and_eqs.var_sum.getResult()))
           
           
         print('SUM              : ' + '...todo...')
-        print('penaltyCosts     : ' + str(self.es.globalComp.penalty.mod.var_sum.getResult()  ))
+        print('penaltyCosts     : ' + str(self.es.globalComp.penalty.vars_and_eqs.var_sum.getResult()))
         print('––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––')
         print('Result of Obj : ' + str(self.objective_value                  ))            
         try:
@@ -156,7 +156,7 @@ class EnergySystemModel(BaseModel):
                     print('!!!!! Exzess.Value in Bus ' + aBus.label + '!!!!!')          
         
         # if penalties exist
-        if self.es.globalComp.penalty.mod.var_sum.getResult() > 10 :
+        if self.es.globalComp.penalty.vars_and_eqs.var_sum.getResult() > 10 :
             print('Take care: -> high penalty makes the used gapFrac quite high')
             print('           -> real costs are not optimized to gapfrac')
           
@@ -174,10 +174,10 @@ class EnergySystemModel(BaseModel):
             for aEffect in self.es.globalComp.listOfEffectTypes:
                 aDict = {}
                 aEffectDict[aEffect.label +' ['+ aEffect.unit + ']'] = aDict
-                aDict['operation']= str(aEffect.operation.mod.var_sum.getResult())
-                aDict['invest']   = str(aEffect.invest   .mod.var_sum.getResult())
-                aDict['sum']      = str(aEffect.all      .mod.var_sum.getResult())
-            main_results_str['penaltyCosts']  = str(self.es.globalComp.penalty.mod.var_sum.getResult())
+                aDict['operation']= str(aEffect.operation.vars_and_eqs.var_sum.getResult())
+                aDict['invest']   = str(aEffect.invest   .vars_and_eqs.var_sum.getResult())
+                aDict['sum']      = str(aEffect.all      .vars_and_eqs.var_sum.getResult())
+            main_results_str['penaltyCosts']  = str(self.es.globalComp.penalty.vars_and_eqs.var_sum.getResult())
             main_results_str['Result of Obj'] = self.objective_value
             main_results_str['lower bound']   = self.solver_results['Problem'][0]['Lower bound']
             
@@ -193,7 +193,7 @@ class EnergySystemModel(BaseModel):
                      }
             main_results_str['Invest-Decisions']=aDict
             for aInvestFeature in self.es.allInvestFeatures:
-                investValue = aInvestFeature.mod.var_investmentSize.getResult()
+                investValue = aInvestFeature.vars_and_eqs.var_investmentSize.getResult()
                 investValue = float(investValue) # bei np.floats Probleme bei Speichern
                 # umwandeln von numpy:
                 if isinstance(investValue, np.ndarray):
@@ -232,16 +232,16 @@ class EnergySystem:
     def allInvestFeatures(self):
         allInvestFeatures = []
         
-        def getInvestFeaturesOfME(aME):
+        def getInvestFeaturesOfME(modeling_element):
             investFeatures = []
-            for aSubComp in aME.subElements_all:
+            for aSubComp in modeling_element.subElements_all:
                 if isinstance(aSubComp, cFeatureInvest):
                     investFeatures.append(aSubComp)
                 investFeatures += getInvestFeaturesOfME(aSubComp)  # recursive!
             return investFeatures
         
-        for aME in self.allMEsOfFirstLayer: # kann in Komponente (z.B. Speicher) oder Flow stecken
-            allInvestFeatures += getInvestFeaturesOfME(aME)
+        for modeling_element in self.allMEsOfFirstLayer: # kann in Komponente (z.B. Speicher) oder Flow stecken
+            allInvestFeatures += getInvestFeaturesOfME(modeling_element)
 
         return allInvestFeatures
     
@@ -464,10 +464,10 @@ class EnergySystem:
       # nur EINMAL ausführen: Finalisieren der MEs:
       if not self.__finalized:
         # finalize MEs for modeling:
-        for aME in self.allMEsOfFirstLayer:
-            print(aME.label)
-            type(aME)
-            aME.finalize() # inklusive subMEs!
+        for modeling_element in self.allMEsOfFirstLayer:
+            print(modeling_element.label)
+            type(modeling_element)
+            modeling_element.finalize() # inklusive subMEs!
         self.__finalized = True
       
     def doModelingOfElements(self):                        
@@ -509,10 +509,10 @@ class EnergySystem:
 
 
       # weitere übergeordnete Modellierungen:
-      for aME in self.setOfOtherMEs:
-        aME.declareVarsAndEqs(self.modBox)
-        aME.doModeling(self.modBox, timeIndexe)      
-        aME.addShareToGlobals(self.globalComp, self.modBox)                  
+      for modeling_element in self.setOfOtherMEs:
+        modeling_element.declareVarsAndEqs(self.modBox)
+        modeling_element.doModeling(self.modBox, timeIndexe)      
+        modeling_element.addShareToGlobals(self.globalComp, self.modBox)                  
         
       # transform to Math:
       self.modBox.transform2MathModel()
@@ -538,24 +538,24 @@ class EnergySystem:
     def activateModBox(self, aModBox) :   
       self.modBox = aModBox
       aModBox : EnergySystemModel
-      aME     : ModelingElement
+      modeling_element     : ModelingElement
       
       # hier nochmal TS updaten (teilweise schon für Preprozesse gemacht):
       self.activateInTS(aModBox.esTimeIndexe, aModBox.TS_explicit)
       
-      # Wenn noch nicht gebaut, dann einmalig ME.mod bauen:
+      # Wenn noch nicht gebaut, dann einmalig ME.vars_and_eqs bauen:
       if aModBox.ME_mod == {} :
-        log.debug('create mod-Vars for MEs of EnergySystem')  
-        for aME in self.allMEsOfFirstLayer:
+        log.debug('create vars_and_eqs-Vars for MEs of EnergySystem')
+        for modeling_element in self.allMEsOfFirstLayer:
           # BEACHTE: erst nach finalize(), denn da werden noch subMEs erst erzeugt!      
           if not self.__finalized: 
             raise Exception('activateModBox(): --> Geht nicht, da System noch nicht finalized!')
-          # mod bauen und in modBox registrieren. 
-          aME.createNewModAndActivateModBox(self.modBox) # inkl. subMEs
+          # vars_and_eqs bauen und in modBox registrieren.
+          modeling_element.createNewModAndActivateModBox(self.modBox) # inkl. subMEs
       else:          
         # nur Aktivieren:
-        for aME in allMEsOfFirstLayer:
-          aME.activateModbox(aModBox) # inkl. subMEs
+        for modeling_element in allMEsOfFirstLayer:
+          modeling_element.activateModbox(aModBox) # inkl. subMEs
 
   
     # ! nur nach Solve aufrufen, nicht später nochmal nach activating modBox (da evtl stimmen Referenzen nicht mehr unbedingt!)
@@ -563,9 +563,9 @@ class EnergySystem:
       results        = {} # Daten
       results_var    = {} # zugehörige Variable
       # für alle Komponenten:
-      for aME in self.allMEsOfFirstLayerWithoutFlows:
+      for modeling_element in self.allMEsOfFirstLayerWithoutFlows:
         # results        füllen:
-        (results[aME.label], results_var[aME.label]) = aME.getResults() # inklusive subMEs!
+        (results[modeling_element.label], results_var[modeling_element.label]) = modeling_element.getResults() # inklusive subMEs!
 
       #Zeitdaten ergänzen
       aTime = {}
@@ -641,8 +641,8 @@ class EnergySystem:
       #others
       aSubDict = {}      
       aDict['others'] = aSubDict
-      for aME in self.setOfOtherMEs:
-        aSubDict[aME.label]=aME.getEqsAsStr()
+      for modeling_element in self.setOfOtherMEs:
+        aSubDict[modeling_element.label]=modeling_element.getEqsAsStr()
       
       return aDict
         
@@ -687,8 +687,8 @@ class EnergySystem:
         # buses:
         subDict = {}
         aDict['buses'] =subDict
-        for aME in self.setOfBuses:
-          subDict[aME.label] = aME.getVarsAsStr()
+        for modeling_element in self.setOfBuses:
+          subDict[modeling_element.label] = modeling_element.getVarsAsStr()
                   
         # globals:
         aDict['globals'] = self.globalComp.getVarsAsStr()
@@ -696,8 +696,8 @@ class EnergySystem:
         #others
         aSubDict = {}      
         aDict['others'] = aSubDict
-        for aME in self.setOfOtherMEs:
-          aSubDict[aME.label]=aME.getVarsAsStr()
+        for modeling_element in self.setOfOtherMEs:
+          aSubDict[modeling_element.label]=modeling_element.getVarsAsStr()
           
         return aDict
       
@@ -1414,7 +1414,7 @@ class ModelingElement(BaseArgumentClass):
       
       self.subElements = [] # zugehörige Sub-ModelingElements
       self.modBox      = None # hier kommt die aktive ModBox rein
-      self.mod         = None # hier kommen alle Glg und Vars rein
+      self.vars_and_eqs         = None # hier kommen alle Glg und Vars rein
       super().__init__(**kwargs)
 
     def __repr__(self):
@@ -1423,36 +1423,36 @@ class ModelingElement(BaseArgumentClass):
     # activate inkl. subMEs:
     def activateModbox(self, modBox):
       
-      for aME in self.subElements:
-        aME.activateModbox(modBox) # inkl. subMEs
+      for modeling_element in self.subElements:
+        modeling_element.activateModbox(modBox) # inkl. subMEs
       self._activateModBox_ForMeOnly(modBox)
   
     # activate ohne SubMEs!
     def _activateModBox_ForMeOnly(self, modBox):
       self.modBox     = modBox
-      self.mod        = modBox.getModOfME(self)
+      self.vars_and_eqs        = modBox.getModOfME(self)
   
     # 1.
     def finalize(self):
       #print('finalize ' + self.label)
       # gleiches für alle sub MEs:
-      for aME in self.subElements:
-        aME.finalize()
+      for modeling_element in self.subElements:
+        modeling_element.finalize()
   
     # 2.
     def createNewModAndActivateModBox(self, modBox):    
-      # print('new mod for ' + self.label)
+      # print('new vars_and_eqs for ' + self.label)
       # subElemente ebenso:
-      aME:ModelingElement
-      for aME in self.subElements:
-        aME.createNewModAndActivateModBox(modBox) # rekursiv!
+      modeling_element:ModelingElement
+      for modeling_element in self.subElements:
+        modeling_element.createNewModAndActivateModBox(modBox) # rekursiv!
       
-      # create mod:
+      # create vars_and_eqs:
       aMod = ElementModelDetails(self)
-      # register mod:
+      # register vars_and_eqs:
       modBox.registerMEandMod(self, aMod)         
       
-      self._activateModBox_ForMeOnly(modBox)# subMEs werden bereits aktiviert über aME.createNewMod...()
+      self._activateModBox_ForMeOnly(modBox)# subMEs werden bereits aktiviert über modeling_element.createNewMod...()
       
     # 3.
     def declareVarsAndEqs(self, modBox):
@@ -1472,12 +1472,12 @@ class ModelingElement(BaseArgumentClass):
       aData = {}
       aVars = {}
       # 1. Unterelemente füllen (rekursiv!):
-      for aME in self.subElements:
-        (aData[aME.label], aVars[aME.label]) = aME.getResults() # rekursiv
+      for modeling_element in self.subElements:
+        (aData[modeling_element.label], aVars[modeling_element.label]) = modeling_element.getResults() # rekursiv
   
       # 2. Variablenwerte ablegen:
       aVar : Variable
-      for aVar in self.mod.variables :
+      for aVar in self.vars_and_eqs.variables :
         # print(aVar.label)
         aData[aVar.label] = aVar.getResult()
         aVars[aVar.label] = aVar # link zur Variable
@@ -1508,9 +1508,9 @@ class ModelingElement(BaseArgumentClass):
   
     # so kurze Schreibweise wie möglich, daher:
     def var(self, label):
-      self.mod.getVar(label)
+      self.vars_and_eqs.getVar(label)
     def eq(self, label):
-      self.mod.getEq (label)
+      self.vars_and_eqs.getEq (label)
   
   
     def getEqsAsStr(self):
@@ -1524,18 +1524,18 @@ class ModelingElement(BaseArgumentClass):
       # wenn sub-eqs, dann dict:
       if not(subs == {}): 
         eqsAsStr = {}
-        eqsAsStr['_self'] = self.mod.getEqsAsStr() # zuerst eigene ...
+        eqsAsStr['_self'] = self.vars_and_eqs.getEqsAsStr() # zuerst eigene ...
         eqsAsStr.update(subs) # ... dann sub-Eqs
       # sonst liste:
       else:
-        eqsAsStr = self.mod.getEqsAsStr()
+        eqsAsStr = self.vars_and_eqs.getEqsAsStr()
     
       return eqsAsStr
     
   
     def getVarsAsStr(self):
         aList = []        
-        aList += self.mod.getVarsAsStr()    
+        aList += self.vars_and_eqs.getVarsAsStr()
         for aSubElement in self.subElements:      
           aList += aSubElement.getVarsAsStr() # rekursiv   
         
@@ -1553,12 +1553,12 @@ class ModelingElement(BaseArgumentClass):
 
     def getEqsVarsOverview(self):
         aDict = {}
-        aDict['no eqs']          = len(self.mod.eqs)
-        aDict['no eqs single']   = sum([eq.nrOfSingleEquations for eq in self.mod.eqs])
-        aDict['no inEqs']        = len(self.mod.ineqs)
-        aDict['no inEqs single'] = sum([ineq.nrOfSingleEquations for ineq in self.mod.ineqs])
-        aDict['no vars']         = len(self.mod.variables)
-        aDict['no vars single']  =  sum([var.len for var in self.mod.variables])  
+        aDict['no eqs']          = len(self.vars_and_eqs.eqs)
+        aDict['no eqs single']   = sum([eq.nrOfSingleEquations for eq in self.vars_and_eqs.eqs])
+        aDict['no inEqs']        = len(self.vars_and_eqs.ineqs)
+        aDict['no inEqs single'] = sum([ineq.nrOfSingleEquations for ineq in self.vars_and_eqs.ineqs])
+        aDict['no vars']         = len(self.vars_and_eqs.variables)
+        aDict['no vars single']  =  sum([var.len for var in self.vars_and_eqs.variables])
         return aDict
 
 
@@ -1659,8 +1659,8 @@ class Effect(ModelingElement):
 
         # Gleichung für Summe Operation und Invest:
         # eq: shareSum = effect.operation_sum + effect.operation_invest
-        self.all.addVariableShare('operation', self, self.operation.mod.var_sum, 1, 1)
-        self.all.addVariableShare('invest', self, self.invest   .mod.var_sum, 1, 1)
+        self.all.addVariableShare('operation', self, self.operation.vars_and_eqs.var_sum, 1, 1)
+        self.all.addVariableShare('invest', self, self.invest   .vars_and_eqs.var_sum, 1, 1)
         self.all.doModeling(modBox, timeIndexe)
       
 # ModelingElement (ME) Klasse zum Summieren einzelner Shares
@@ -1815,8 +1815,8 @@ class Component(ModelingElement):
 
       # Binärvariablen holen (wenn vorh., sonst None):
       #   (hier und nicht erst bei doModeling, da linearSegments die Variable zum Modellieren benötigt!)
-      self.mod.var_on                               = self.featureOn.getVar_on()           # mit None belegt, falls nicht notwendig           
-      self.mod.var_switchOn, self.mod.var_switchOff = self.featureOn.getVars_switchOnOff() # mit None belegt, falls nicht notwendig                  
+      self.vars_and_eqs.var_on                               = self.featureOn.getVar_on()           # mit None belegt, falls nicht notwendig
+      self.vars_and_eqs.var_switchOn, self.vars_and_eqs.var_switchOff = self.featureOn.getVars_switchOnOff() # mit None belegt, falls nicht notwendig
 
       # super().declareVarsAndEqs(modBox)
       
@@ -1975,7 +1975,7 @@ class GlobalConstraintsManager(ModelingElement):
           shareSum_op = effectTypeOfShare.operation
           shareSum_op : cFeature_ShareSum
           shareHolder = effectType
-          shareSum_op.addVariableShare(nameOfShare, shareHolder, effectType.operation.mod.var_sum_TS, specShare_TS, 1)
+          shareSum_op.addVariableShare(nameOfShare, shareHolder, effectType.operation.vars_and_eqs.var_sum_TS, specShare_TS, 1)
         # 2. invest:    -> hier ist es Skalar (share)
         # alle specificSharesToOtherEffects durchgehen:
         nameOfShare = 'specificShareToOtherEffects_invest_'# + effectType.label
@@ -1984,19 +1984,19 @@ class GlobalConstraintsManager(ModelingElement):
           shareSum_inv = effectTypeOfShare.invest
           shareSum_inv : cFeature_ShareSum
           shareHolder = effectType
-          shareSum_inv.addVariableShare(nameOfShare, shareHolder, effectType.invest.mod.var_sum   , specShare   , 1)
+          shareSum_inv.addVariableShare(nameOfShare, shareHolder, effectType.invest.vars_and_eqs.var_sum, specShare, 1)
                          
         
       
       # ####### target function  ###########       
       # Strafkosten immer:
-      self.objective.addSummand(self.penalty  .mod.var_sum, 1) 
+      self.objective.addSummand(self.penalty  .vars_and_eqs.var_sum, 1)
       
       # Definierter Effekt als Zielfunktion:
       objectiveEffect = self.listOfEffectTypes.objectiveEffect()
       if objectiveEffect is None : raise Exception('Kein Effekt als Zielfunktion gewählt!')
-      self.objective.addSummand(objectiveEffect.operation.mod.var_sum, 1)
-      self.objective.addSummand(objectiveEffect.invest   .mod.var_sum ,1)
+      self.objective.addSummand(objectiveEffect.operation.vars_and_eqs.var_sum, 1)
+      self.objective.addSummand(objectiveEffect.invest   .vars_and_eqs.var_sum, 1)
             
 class Bus(Component): # sollte das wirklich geerbt werden oder eher nur ModelingElement???
     '''
@@ -2084,9 +2084,9 @@ class Bus(Component): # sollte das wirklich geerbt werden oder eher nur Modeling
       # inputs = outputs 
       eq_busbalance = Equation('busBalance', self, modBox)
       for aFlow in self.inputs:
-        eq_busbalance.addSummand(aFlow.mod.var_val, 1)
+        eq_busbalance.addSummand(aFlow.vars_and_eqs.var_val, 1)
       for aFlow in self.outputs:
-        eq_busbalance.addSummand(aFlow.mod.var_val,-1)
+        eq_busbalance.addSummand(aFlow.vars_and_eqs.var_val, -1)
       
       # Fehlerplus/-minus:
       if self.withExcess:
@@ -2436,15 +2436,15 @@ class Flow(ModelingElement):
             (lb, ub, fix_value) = self.featureInvest.getMinMaxOfDefiningVar()
               
         # TODO --> wird trotzdem modelliert auch wenn value = konst -> Sinnvoll?        
-        self.mod.var_val = VariableTS('val', modBox.nrOfTimeSteps, self, modBox, min = lb, max = ub, value = fix_value)
-        self.mod.var_sumFlowHours = Variable('sumFlowHours', 1, self, modBox, min = self.sumFlowHours_min, max = self.sumFlowHours_max)
+        self.vars_and_eqs.var_val = VariableTS('val', modBox.nrOfTimeSteps, self, modBox, min = lb, max = ub, value = fix_value)
+        self.vars_and_eqs.var_sumFlowHours = Variable('sumFlowHours', 1, self, modBox, min = self.sumFlowHours_min, max = self.sumFlowHours_max)
         # ! Die folgenden Variablen müssen erst von featureOn erstellt worden sein:
-        self.mod.var_on                               = self.featureOn.getVar_on()           # mit None belegt, falls nicht notwendig           
-        self.mod.var_switchOn, self.mod.var_switchOff = self.featureOn.getVars_switchOnOff() # mit None belegt, falls nicht notwendig           
+        self.vars_and_eqs.var_on                               = self.featureOn.getVar_on()           # mit None belegt, falls nicht notwendig
+        self.vars_and_eqs.var_switchOn, self.vars_and_eqs.var_switchOff = self.featureOn.getVars_switchOnOff() # mit None belegt, falls nicht notwendig
      
         # erst hier, da definingVar vorher nicht belegt!
         if self.featureInvest is not None: 
-          self.featureInvest.setDefiningVar(self.mod.var_val, self.mod.var_on)
+          self.featureInvest.setDefiningVar(self.vars_and_eqs.var_val, self.vars_and_eqs.var_on)
           self.featureInvest.declareVarsAndEqs(modBox)
           
     def doModeling(self, modBox:EnergySystemModel, timeIndexe):
@@ -2466,8 +2466,8 @@ class Flow(ModelingElement):
         # eq: var_sumFlowHours - sum(var_val(t)* dt(t) = 0
         
         eq_sumFlowHours = Equation('sumFlowHours', self, modBox, 'eq') # general mean
-        eq_sumFlowHours.addSummandSumOf(self.mod.var_val, modBox.dtInHours)  
-        eq_sumFlowHours.addSummand(self.mod.var_sumFlowHours,-1)
+        eq_sumFlowHours.addSummandSumOf(self.vars_and_eqs.var_val, modBox.dtInHours)
+        eq_sumFlowHours.addSummand(self.vars_and_eqs.var_sumFlowHours, -1)
         
        
         #          
@@ -2492,9 +2492,9 @@ class Flow(ModelingElement):
         if self.loadFactor_max is not None:  
           flowHoursPerInvestsize_max = modBox.dtInHours_tot * self.loadFactor_max # = fullLoadHours if investsize in [kW]
           eq_flowHoursPerInvestsize_Max = Equation('loadFactor_max', self, modBox, 'ineq') # general mean
-          eq_flowHoursPerInvestsize_Max.addSummand(self.mod.var_sumFlowHours, 1)  
+          eq_flowHoursPerInvestsize_Max.addSummand(self.vars_and_eqs.var_sumFlowHours, 1)
           if self.featureInvest is not None:
-            eq_flowHoursPerInvestsize_Max.addSummand(self.featureInvest.mod.var_investmentSize, -1 * flowHoursPerInvestsize_max) 
+            eq_flowHoursPerInvestsize_Max.addSummand(self.featureInvest.vars_and_eqs.var_investmentSize, -1 * flowHoursPerInvestsize_max)
           else:
             eq_flowHoursPerInvestsize_Max.addRightSide(self.nominal_val * flowHoursPerInvestsize_max)          
         
@@ -2504,9 +2504,9 @@ class Flow(ModelingElement):
         if self.loadFactor_min is not None:
           flowHoursPerInvestsize_min = modBox.dtInHours_tot * self.loadFactor_min # = fullLoadHours if investsize in [kW]
           eq_flowHoursPerInvestsize_Min = Equation('loadFactor_min', self, modBox, 'ineq')
-          eq_flowHoursPerInvestsize_Min.addSummand(self.mod.var_sumFlowHours, -1)          
+          eq_flowHoursPerInvestsize_Min.addSummand(self.vars_and_eqs.var_sumFlowHours, -1)
           if self.featureInvest is not None:
-            eq_flowHoursPerInvestsize_Min.addSummand(self.featureInvest.mod.var_investmentSize,  flowHoursPerInvestsize_min) 
+            eq_flowHoursPerInvestsize_Min.addSummand(self.featureInvest.vars_and_eqs.var_investmentSize, flowHoursPerInvestsize_min)
           else:
             eq_flowHoursPerInvestsize_Min.addRightSide(-1 * self.nominal_val * flowHoursPerInvestsize_min)
         
@@ -2517,9 +2517,9 @@ class Flow(ModelingElement):
           if modBox.modType == 'pyomo':
             def positive_gradient_rule(t):
               if t == 0:
-                return (self.mod.var_val[t] - self.val_initial) / modBox.dtInHours[t] <= self.positive_gradient[t] #             
+                return (self.vars_and_eqs.var_val[t] - self.val_initial) / modBox.dtInHours[t] <= self.positive_gradient[t] #             
               else: 
-                return (self.mod.var_val[t] - self.mod.var_val[t-1])    / modBox.dtInHours[t] <= self.positive_gradient[t] #
+                return (self.vars_and_eqs.var_val[t] - self.vars_and_eqs.var_val[t-1])    / modBox.dtInHours[t] <= self.positive_gradient[t] #
   
             # Erster Zeitschritt beachten:          
             if (self.val_initial == None) & (start == 0):
@@ -2544,10 +2544,10 @@ class Flow(ModelingElement):
         # Arbeitskosten:
         if self.costsPerFlowHour is not None: 
           # globalComp.addEffectsForVariable(aVariable, aEffect, aFactor)
-          # variable_costs          = Vector(self.mod.var_val, np.multiply(self.costsPerFlowHour, modBox.dtInHours))
-          # globalComp.costsOfOperating_eq.addSummand(self.mod.var_val, np.multiply(self.costsPerFlowHour.d_i, modBox.dtInHours)) # np.multiply = elementweise Multiplikation          
+          # variable_costs          = Vector(self.vars_and_eqs.var_val, np.multiply(self.costsPerFlowHour, modBox.dtInHours))
+          # globalComp.costsOfOperating_eq.addSummand(self.vars_and_eqs.var_val, np.multiply(self.costsPerFlowHour.d_i, modBox.dtInHours)) # np.multiply = elementweise Multiplikation
           shareHolder = self
-          globalComp.addShareToOperation('costsPerFlowHour', shareHolder, self.mod.var_val, self.costsPerFlowHour, modBox.dtInHours)
+          globalComp.addShareToOperation('costsPerFlowHour', shareHolder, self.vars_and_eqs.var_val, self.costsPerFlowHour, modBox.dtInHours)
             
         # Anfahrkosten, Betriebskosten, ... etc ergänzen: 
         self.featureOn.addShareToGlobals(globalComp,modBox)

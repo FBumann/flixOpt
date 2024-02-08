@@ -379,16 +379,16 @@ class cAggregationModeling(flixStructure.ModelingElement):
           pass # flow hier nicht fixen!
       else:              
         # On-Variablen:
-        if aME.mod.var_on is not None:
-          aVar = aME.mod.var_on
+        if aME.vars_and_eqs.var_on is not None:
+          aVar = aME.vars_and_eqs.var_on
           aEq = self.getEqForLinkedIndexe(aVar, modBox,fixFirstIndexOfPeriod = True)       
         # SwitchOn-Variablen:
-        if aME.mod.var_switchOn is not None:
-          aVar = aME.mod.var_switchOn 
+        if aME.vars_and_eqs.var_switchOn is not None:
+          aVar = aME.vars_and_eqs.var_switchOn
           # --> hier ersten Index weglassen:
           aEq = self.getEqForLinkedIndexe(aVar, modBox,fixFirstIndexOfPeriod = False)       
-        if aME.mod.var_switchOff is not None:
-          aVar = aME.mod.var_switchOff 
+        if aME.vars_and_eqs.var_switchOff is not None:
+          aVar = aME.vars_and_eqs.var_switchOff
           # --> hier ersten Index weglassen:
           aEq = self.getEqForLinkedIndexe(aVar, modBox,fixFirstIndexOfPeriod = False)       
         
@@ -396,8 +396,8 @@ class cAggregationModeling(flixStructure.ModelingElement):
         # Nicht-Binär-Variablen:        
         if not self.fixBinaryVarsOnly:
           # Value-Variablen:
-          if hasattr(aME.mod,'var_val'):
-            aVar = aME.mod.var_val
+          if hasattr(aME.vars_and_eqs, 'var_val'):
+            aVar = aME.vars_and_eqs.var_val
             aEq = self.getEqForLinkedIndexe(aVar, modBox,fixFirstIndexOfPeriod = True)       
           
   

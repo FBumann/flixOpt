@@ -19,18 +19,28 @@ log = logging.getLogger(__name__)
 from . import flixOptHelperFcts as helpers
       
 class cBaseModel:
-  '''
-  Klasse für Gleichungen a_1.*x_1+a_2.*x_2 = y 
-  x_1, a_1 können Vektoren oder Skalare sein.
-  
-  Modell zum Addieren von Vektor-Variablen und Skalaren : 
-  zulässige Summanden:
-  + var_vec * factor_vec
-  + var_vec * factor 
-  +           factor 
-  + var     * factor
-  + var     * factor_vec  # macht das Sinn? Ist das überhaupt implementiert?
-  '''
+  """
+  A base class for modeling equations of the form a_1*x_1 + a_2*x_2 = y,
+  where x_1, a_1 can be vectors or scalars. This class supports the addition
+  of vector variables and scalars, facilitating various operations including
+  multiplication with factors (which can be vectors or scalars) and addition of constants.
+
+  Attributes:
+      variables (list): A list of all variables in the model.
+      eqs (list): A list of all equations in the model.
+      ineqs (list): A list of all inequalities in the model.
+      objective (object): The objective function of the model.
+      objective_value (float): The result of the objective function after solving the model.
+      duration (dict): A dictionary tracking the runtimes of different operations.
+      solverLog (object): An object for logging and parsing solver output.
+
+  Methods:
+      infos: Returns a dictionary containing information about the model and solver.
+      variables_TSonly: Returns a list of variables that are time series only.
+      printNoEqsAndVars(): Prints the number of equations, inequalities, and variables.
+      transform2MathModel(): Transforms the defined model elements into a mathematical model ready for solving.
+      solve(gapfrac, timelimit, solver_name, displaySolverOutput, logfileName, **solver_opt): Solves the model using the specified solver and options.
+  """
     
   
   @property
@@ -60,6 +70,19 @@ class cBaseModel:
       
       
   def __init__(self, label, aModType):
+    """
+    Initializes the cBaseModel class with a specific label and model type.
+
+    Parameters:
+        label (str): A label for the model, providing a means to identify it.
+        aModType (str): The type of model, which dictates how the model should be structured and solved. Currently supports 'pyomo'.
+
+    Raises:
+        Exception: If `aModType` is not supported, an exception is raised.
+
+    Note:
+        The class is designed to be extended for specific model types and solvers, such as Pyomo for optimization problems.
+    """
     self._infos      = {}
     self.label        = label
     self.modType      = aModType
@@ -226,8 +249,50 @@ class cBaseModel:
     self.duration['solve'] = round(time.time()-t_start,2)
 
 
-class cVariable : 
-  def __init__(self, label, len, myMom, baseModel, isBinary = False, value = None, min = None , max = None): 
+class cVariable :
+  """
+  Represents a variable in a mathematical optimization model, supporting both scalar and vector forms.
+  This class manages variable properties such as bounds, binary constraints, and fixed values, and it integrates
+  these variables into the associated mathematical model for optimization.
+
+  Attributes:
+      label (str): Identifier for the variable, unique within its model context.
+      len (int): Length of the variable, indicating scalar (1) or vector (>1) form.
+      myMom (object): The parent object that contains this variable, typically a model or a model component.
+      baseModel (cBaseModel): The base model object that this variable is a part of.
+      isBinary (bool): Flag indicating whether the variable is binary (True) or continuous/integer (False).
+      value (float or list): Initial value(s) for the variable; can be a single value or a list of values matching `len`.
+      min (float or list): Minimum bound(s) for the variable; can be a single value or a list of values matching `len`.
+      max (float or list): Maximum bound(s) for the variable; can be a single value or a list of values matching `len`.
+      indexe (range): A range object representing the indices of the variable, based on `len`.
+      label_full (str): A fully qualified label incorporating parent's label and this variable's label.
+      fixed (bool): Indicates if the variable's value(s) are fixed at the provided initial value(s).
+      result (Any): Stores the result(s) after the model's execution. Initially None.
+
+  Methods:
+      transform2MathModel(baseModel): Transforms and incorporates this variable into the given mathematical model.
+      resetResult(): Resets the stored result(s) to None.
+      getResult(): Retrieves the result(s) for this variable from the mathematical model after execution.
+      print(shiftChars): Prints a description of the variable, including its full label and value(s), with an indent.
+      getStrDescription(): Returns a string description of the variable's properties.
+  """
+  def __init__(self, label, len, myMom, baseModel, isBinary = False, value = None, min = None , max = None):
+    """
+    Initializes a new instance of the cVariable class with specified characteristics and bounds.
+
+    Parameters:
+        label (str): The label of the variable.
+        len (int): The length of the variable, indicating whether it is a scalar or vector.
+        myMom (object): The parent object of this variable.
+        baseModel (cBaseModel): The base model that this variable will be a part of.
+        isBinary (bool, optional): Flag to indicate if the variable is binary. Defaults to False.
+        value (float or list, optional): The initial value(s) for the variable. Defaults to None.
+        min (float or list, optional): The minimum bound(s) for the variable. Defaults to None.
+        max (float or list, optional): The maximum bound(s) for the variable. Defaults to None.
+
+    Raises:
+        Exception: If initial values are outside the specified min/max bounds.
+    """
     self.label = label
     self.len   = len
     self.myMom = myMom

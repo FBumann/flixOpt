@@ -70,10 +70,10 @@ heat2 = Bus('heat', 'heat2', excessCostsPerFlowHour = excessCosts);
 costs = Effect('costs', '€', 'Kosten', isStandard = True, isObjective = True)
 
 
-aSink1   = cSink   ('Sink1', sink   = Flow('Q_th', bus = heat1, nominal_val = 1, val_rel = sink1))
-aSink2   = cSink   ('Sink2', sink   = Flow('Q_th', bus = heat2, nominal_val = 1, val_rel = sink2))
-aSource1 = cSource ('Source1', source = Flow('Q_th', bus = heat1, nominal_val = 60, costsPerFlowHour = -1))
-aSource2 = cSource ('Source2', source = Flow('Q_th', bus = heat2, nominal_val = 60, costsPerFlowHour = -1)) # doppelt so teuer
+aSink1   = Sink   ('Sink1', sink   = Flow('Q_th', bus = heat1, nominal_val = 1, val_rel = sink1))
+aSink2   = Sink   ('Sink2', sink   = Flow('Q_th', bus = heat2, nominal_val = 1, val_rel = sink2))
+aSource1 = Source ('Source1', source = Flow('Q_th', bus = heat1, nominal_val = 60, costsPerFlowHour = -1))
+aSource2 = Source ('Source2', source = Flow('Q_th', bus = heat2, nominal_val = 60, costsPerFlowHour = -1)) # doppelt so teuer
 
 
 loss_abs = 1
@@ -81,28 +81,28 @@ loss_abs = 1
 loss_rel = 0.1
 # loss_rel = 0
 
-invest1 = cInvestArgs(fixCosts=10,
-                      investmentSize_is_fixed=False,
-                      investment_is_optional=True,                      
-                      max_investmentSize=1000 ,
-                      specificCosts=1)
+invest1 = InvestmentParameters(fixCosts=10,
+                               investmentSize_is_fixed=False,
+                               investment_is_optional=True,
+                               max_investmentSize=1000,
+                               specificCosts=1)
 
 # only for getting realizing investSize-Variable:
-invest2 = cInvestArgs(fixCosts=0,
-                      investmentSize_is_fixed=False,
-                      investment_is_optional=True,                      
-                      max_investmentSize=1000 ,
-                      specificCosts=0
-                      )
-
-aTransporter = cTransportation('Rohr',
-                               in1  = Flow('in1', bus=heat1, investArgs=invest1, nominal_val = None, min_rel = 0.1),
-                               out1 = Flow('out1', bus=heat2),
-                               loss_abs = loss_abs,
-                               loss_rel = loss_rel,
-                               in2  = Flow('in2', bus=heat2, investArgs=invest2, nominal_val = None, min_rel = 0.1),
-                               out2 = Flow('out2', bus=heat1),
+invest2 = InvestmentParameters(fixCosts=0,
+                               investmentSize_is_fixed=False,
+                               investment_is_optional=True,
+                               max_investmentSize=1000,
+                               specificCosts=0
                                )
+
+aTransporter = Transportation('Rohr',
+                              in1  = Flow('in1', bus=heat1, investArgs=invest1, nominal_val = None, min_rel = 0.1),
+                              out1 = Flow('out1', bus=heat2),
+                              loss_abs = loss_abs,
+                              loss_rel = loss_rel,
+                              in2  = Flow('in2', bus=heat2, investArgs=invest2, nominal_val = None, min_rel = 0.1),
+                              out2 = Flow('out2', bus=heat1),
+                              )
 
 # Built energysystem:
 es = EnergySystem(aTimeSeries, dt_last=None)

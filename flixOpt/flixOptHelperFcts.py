@@ -13,7 +13,7 @@ import re
 import math # für nan
 import matplotlib.pyplot as plt
 
-from .flixBasicsPublic import cTSraw
+from .flixBasicsPublic import TimeSeriesData
 
 
 def getVector(aValue,aLen):  
@@ -67,7 +67,7 @@ def zerosToNans(aVector):
   return nanVector
   
 def checkBoundsOfParameter(aParam,aParamLabel,aBounds,aObject=None):
-  if  isinstance(aParam, cTSraw):
+  if  isinstance(aParam, TimeSeriesData):
     aParam=aParam.value
   if np.any(aParam < aBounds[0]) | np.any(aParam >= aBounds[1]):
     raise Exception(aParamLabel + ' verletzt min/max - Grenzen!')

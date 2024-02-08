@@ -18,7 +18,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
-class EnergySystemModel(cBaseModel):
+class EnergySystemModel(BaseModel):
     '''
     Hier kommen die ModellingLanguage-spezifischen Sachen rein
     '''
@@ -308,7 +308,7 @@ class EnergySystem:
         self.standardEffect   = None # Standard-Effekt, zumeist Kosten
         self.objectiveEffect  = None # Zielfunktions-Effekt, z.B. Kosten oder CO2
         # instanzieren einer globalen Komponente (diese hat globale Gleichungen!!!)
-        self.globalComp       = Global('globalComp')
+        self.globalComp       = GlobalConstraintsManager('globalComp')
         self.__finalized      = False # wenn die MEs alle finalisiert sind, dann True
         self.modBox           = None # later activated
         # # global sollte das erste Element sein, damit alle anderen Componenten darauf zugreifen können: 
@@ -371,7 +371,7 @@ class EnergySystem:
 
         Parameters
         ----------
-        *args : childs of   ModelingElement like cBoiler, cHeatPump, Bus,...
+        *args : childs of   ModelingElement like cBoiler, HeatPump, Bus,...
             modeling Elements
 
         '''
@@ -522,7 +522,7 @@ class EnergySystem:
     
     # aktiviere in TS die gewählten Indexe: (wird auch direkt genutzt, nicht nur in activateModbox)
     def activateInTS(self, chosenTimeIndexe, dictOfTSAndExplicitData = None):
-      aTS: cTS_vector      
+      aTS: TimeSeriesVector
       if dictOfTSAndExplicitData is None : 
         dictOfTSAndExplicitData = {}
       
@@ -662,7 +662,7 @@ class EnergySystem:
               
       
     def getVarsAsStr(self, structured = True):
-      aVar : cVariable
+      aVar : Variable
       
       # liste:
       if not structured:
@@ -950,7 +950,7 @@ class EnergySystemCalculation :
         # Startwerte übergeben von Vorgänger-Modbox:
         if i > 0 : 
           segmentModBoxBefore = self.segmentModBoxList[i-1]        
-          segmentModBox.beforeValueSet = cBeforeValueSet(segmentModBoxBefore, segmentModBoxBefore.realNrOfUsedSteps -1)
+          segmentModBox.beforeValueSet = InitialValueSet(segmentModBoxBefore, segmentModBoxBefore.realNrOfUsedSteps - 1)
           print('### beforeValueSet: ###')        
           segmentModBox.beforeValueSet.print()
           print('#######################')
@@ -1021,10 +1021,10 @@ class EnergySystemCalculation :
         useOriginalTimeSeries : boolean. 
             orginal or aggregated timeseries should 
             be chosen for the calculation. default is False.    
-        addPeakMax : list of cTSraw 
+        addPeakMax : list of TimeSeriesData
             list of data-timeseries. The period with the max-value are 
             chosen as a explicitly period.            
-        addPeakMin : list of cTSraw
+        addPeakMin : list of TimeSeriesData
             list of data-timeseries. The period with the min-value are 
             chosen as a explicitly period.            
           
@@ -1066,10 +1066,10 @@ class EnergySystemCalculation :
         ## Daten für Aggregation vorbereiten:    
         # TSlist and TScollection ohne Skalare:
         self.TSlistForAggregation = [item for item in self.es.allTSinMEs if item.isArray]
-        self.TScollectionForAgg = cTS_collection(self.TSlistForAggregation, 
-                                                 addPeakMax_TSraw = addPeakMax, 
-                                                 addPeakMin_TSraw = addPeakMin,
-                                                 )
+        self.TScollectionForAgg = TimeSeriesCollection(self.TSlistForAggregation,
+                                                       addPeakMax_TSraw = addPeakMax,
+                                                       addPeakMin_TSraw = addPeakMin,
+                                                       )
   
         self.TScollectionForAgg.print()   
     
@@ -1290,8 +1290,8 @@ class EnergySystemCalculation :
             else:
               # Beachte Speicherladezustand und ähnliche Variablen:                      
               aReferedVariable = resultToAppendVar[key]
-              aReferedVariable : cVariable_TS
-              withEnd = isinstance(aReferedVariable, cVariable_TS) \
+              aReferedVariable : TimeSeriesVariable
+              withEnd = isinstance(aReferedVariable, TimeSeriesVariable) \
                   and aReferedVariable.activated_beforeValues \
                   and aReferedVariable.beforeValueIsStartValue 
                   
@@ -1356,7 +1356,7 @@ class ElementModelDetails:
     # Eqs, Ineqs und Objective als Str-Description:
     def getEqsAsStr(self):
         # Wenn Glg vorhanden:    
-        eq: cEquation
+        eq: Equation
         aList = []
         if (len(self.eqs) + len(self.ineqs)) > 0:
             for eq in (self.eqs + self.ineqs) :
@@ -1380,7 +1380,7 @@ class ElementModelDetails:
                   allow_unicode=True)
 
 
-class ModelingElement(cArgsClass):
+class ModelingElement(BaseArgumentClass):
     """
     Element mit Variablen und Gleichungen (ME = Modeling Element)
     -> besitzt Methoden, die jede Kindklasse ergänzend füllt:
@@ -1410,7 +1410,7 @@ class ModelingElement(cArgsClass):
     # TODO: besser occupied_args
     def __init__(self,label, **kwargs):
       self.label     = label
-      self.TS_list   = []#   = list with ALL timeseries-Values (--> need all classes with .trimTimeSeries()-Method, e.g. cTS_vector)
+      self.TS_list   = []#   = list with ALL timeseries-Values (--> need all classes with .trimTimeSeries()-Method, e.g. TimeSeriesVector)
       
       self.subElements = [] # zugehörige Sub-ModelingElements
       self.modBox      = None # hier kommt die aktive ModBox rein
@@ -1476,7 +1476,7 @@ class ModelingElement(cArgsClass):
         (aData[aME.label], aVars[aME.label]) = aME.getResults() # rekursiv
   
       # 2. Variablenwerte ablegen:
-      aVar : cVariable
+      aVar : Variable
       for aVar in self.mod.variables :
         # print(aVar.label)
         aData[aVar.label] = aVar.getResult()
@@ -1488,7 +1488,7 @@ class ModelingElement(cArgsClass):
           aVars[aVar.label + '_'] = aVar # link zur Variable
   
       # 3. Alle TS übergeben
-      aTS : cTS_vector
+      aTS : TimeSeriesVector
       for aTS in self.TS_list :
         # print(aVar.label)
         aData[aTS.label] = aTS.d
@@ -1637,7 +1637,7 @@ class Effect(ModelingElement):
         for effectType, share in self.specificShareToOtherEffects_operation.items() :
           # value überschreiben durch TS:
           TS_name = 'specificShareToOtherEffect' +'_'+ effectType.label
-          self.specificShareToOtherEffects_operation[effectType] = cTS_vector(TS_name, specificShareToOtherEffects_operation[effectType], self)
+          self.specificShareToOtherEffects_operation[effectType] = TimeSeriesVector(TS_name, specificShareToOtherEffects_operation[effectType], self)
     
         # ShareSums:
         self.operation = cFeature_ShareSum(label = 'operation', owner = self, sharesAreTS = True,  minOfSum = self.min_operationSum, maxOfSum = self.max_operationSum)
@@ -1878,7 +1878,7 @@ class Component(ModelingElement):
 
 
 # komponenten übergreifende Gleichungen/Variablen/Zielfunktion!
-class Global(ModelingElement):
+class GlobalConstraintsManager(ModelingElement):
     ''' 
     storing global modeling stuff like effect equations and optimization target
     '''
@@ -1950,10 +1950,10 @@ class Global(ModelingElement):
         effect.declareVarsAndEqs(modBox)
       self.penalty  .declareVarsAndEqs(modBox)
   
-      self.objective  = cEquation('obj',self,modBox,'objective')   
+      self.objective  = Equation('obj', self, modBox, 'objective')
      
       # todo : besser wäre objective separat:
-     #  eq_objective = cEquation('objective',self,modBox,'objective')   
+     #  eq_objective = Equation('objective',self,modBox,'objective')
       # todo: hier vielleicht gleich noch eine Kostenvariable ergänzen. Wäre cool!
     def doModeling(self,modBox,timeIndexe):
       # super().doModeling(modBox,timeIndexe)
@@ -2023,7 +2023,7 @@ class Bus(Component): # sollte das wirklich geerbt werden oder eher nur Modeling
             example 2: media = {'gas','biogas','H2'} -> flows of these media are allowed
         label : str
             name.
-        excessCostsPerFlowHour : none or scalar, array or cTSraw
+        excessCostsPerFlowHour : none or scalar, array or TimeSeriesData
             excess costs / penalty costs (bus balance compensation)
             (none/ 0 -> no penalty). The default is 1e5.
         **kwargs : TYPE
@@ -2042,7 +2042,7 @@ class Bus(Component): # sollte das wirklich geerbt werden oder eher nur Modeling
             
         if  (excessCostsPerFlowHour is not None) and (excessCostsPerFlowHour > 0) :
           self.withExcess = True
-          self.excessCostsPerFlowHour = cTS_vector('excessCostsPerFlowHour', excessCostsPerFlowHour, self)      
+          self.excessCostsPerFlowHour = TimeSeriesVector('excessCostsPerFlowHour', excessCostsPerFlowHour, self)
         else: 
           self.withExcess = False
   
@@ -2075,14 +2075,14 @@ class Bus(Component): # sollte das wirklich geerbt werden oder eher nur Modeling
       # Fehlerplus/-minus:
       if self.withExcess:
         # Fehlerplus und -minus definieren
-        self.excessIn  =  cVariable_TS('excessIn' , len(modBox.timeSeries), self, modBox, min=0)   
-        self.excessOut =  cVariable_TS('excessOut', len(modBox.timeSeries), self, modBox, min=0)         
+        self.excessIn  =  TimeSeriesVariable('excessIn', len(modBox.timeSeries), self, modBox, min=0)
+        self.excessOut =  TimeSeriesVariable('excessOut', len(modBox.timeSeries), self, modBox, min=0)
       
     def doModeling(self, modBox, timeIndexe):        
       super().doModeling(modBox, timeIndexe)
         
       # inputs = outputs 
-      eq_busbalance = cEquation('busBalance', self, modBox)
+      eq_busbalance = Equation('busBalance', self, modBox)
       for aFlow in self.inputs:
         eq_busbalance.addSummand(aFlow.mod.var_val, 1)
       for aFlow in self.outputs:
@@ -2224,9 +2224,9 @@ class Flow(ModelingElement):
             name of flow
         bus : Bus, optional
             bus to which flow is linked
-        min_rel : scalar, array, cTSraw, optional
+        min_rel : scalar, array, TimeSeriesData, optional
             min value is min_rel multiplied by nominal_val
-        max_rel : scalar, array, cTSraw, optional
+        max_rel : scalar, array, TimeSeriesData, optional
             max value is max_rel multiplied by nominal_val. If nominal_val = max then max_rel=1
         nominal_val : scalar. None if is a nominal value is a opt-variable, optional
             nominal value/ invest size (linked to min_rel, max_rel and others). 
@@ -2241,7 +2241,7 @@ class Flow(ModelingElement):
             maximal load factor (see minimal load factor)
         positive_gradient : TYPE, optional
            not implemented yet
-        costsPerFlowHour : scalar, array, cTSraw, optional
+        costsPerFlowHour : scalar, array, TimeSeriesData, optional
             operational costs, costs per flow-"work"
         iCanSwitchOff : boolean, optional
             flow can be "off", i.e. be zero (only relevant if min_rel > 0) 
@@ -2262,7 +2262,7 @@ class Flow(ModelingElement):
             (last off-time period of timeseries is not checked and can be shorter)
         offHours_max : scalar, optional
             max sum of non-operating hours in one piece
-        switchOnCosts : scalar, array, cTSraw, optional
+        switchOnCosts : scalar, array, TimeSeriesData, optional
             cost of one switch from off (var_on=0) to on (var_on=1), 
             unit i.g. in Euro
         switchOn_maxNr : integer, optional
@@ -2278,7 +2278,7 @@ class Flow(ModelingElement):
         valuesBeforeBegin : list (TODO: why not scalar?), optional
             Flow-value before begin (for calculation of i.g. switchOn for first time step, gradient for first time step ,...)'), 
             # TODO: integration of option for 'first is last'
-        val_rel : scalar, array, cTSraw, optional
+        val_rel : scalar, array, TimeSeriesData, optional
             fixed relative values for flow (if given). 
             val(t) := val_rel(t) * nominal_val(t)
             With this value, the flow-value is no opt-variable anymore;
@@ -2288,7 +2288,7 @@ class Flow(ModelingElement):
         medium: string, None
             medium is relevant, if the linked bus only allows a special defined set of media.
             If None, any bus can be used.            
-        investArgs : None or cInvestArgs, optional
+        investArgs : None or InvestmentParameters, optional
             used for investment costs or/and investment-optimization!
         '''
         
@@ -2297,20 +2297,20 @@ class Flow(ModelingElement):
         # args to attributes:
         self.bus                 = bus
         self.nominal_val         = nominal_val # skalar!
-        self.min_rel = cTS_vector('min_rel', min_rel, self)
-        self.max_rel = cTS_vector('max_rel', max_rel, self)
+        self.min_rel = TimeSeriesVector('min_rel', min_rel, self)
+        self.max_rel = TimeSeriesVector('max_rel', max_rel, self)
 
         self.loadFactor_min      = loadFactor_min
         self.loadFactor_max      = loadFactor_max
-        self.positive_gradient   = cTS_vector('positive_gradient', positive_gradient, self)
+        self.positive_gradient   = TimeSeriesVector('positive_gradient', positive_gradient, self)
         self.costsPerFlowHour    = transFormEffectValuesToTSDict('costsPerFlowHour',costsPerFlowHour , self)
         self.iCanSwitchOff       = iCanSwitchOff
         self.onHoursSum_min      = onHoursSum_min
         self.onHoursSum_max      = onHoursSum_max
-        self.onHours_min         = None if (onHours_min is None) else cTS_vector('onHours_min', onHours_min, self)
-        self.onHours_max         = None if (onHours_max is None) else cTS_vector('onHours_max', onHours_max, self)
-        self.offHours_min        = None if (offHours_min is None) else cTS_vector('offHours_min', offHours_min, self)
-        self.offHours_max        = None if (offHours_max is None) else cTS_vector('offHours_max', offHours_max, self)
+        self.onHours_min         = None if (onHours_min is None) else TimeSeriesVector('onHours_min', onHours_min, self)
+        self.onHours_max         = None if (onHours_max is None) else TimeSeriesVector('onHours_max', onHours_max, self)
+        self.offHours_min        = None if (offHours_min is None) else TimeSeriesVector('offHours_min', offHours_min, self)
+        self.offHours_max        = None if (offHours_max is None) else TimeSeriesVector('offHours_max', offHours_max, self)
         self.switchOnCosts       = transFormEffectValuesToTSDict('switchOnCosts'      , switchOnCosts       , self)
         self.switchOn_maxNr      = switchOn_maxNr
         self.costsPerRunningHour = transFormEffectValuesToTSDict('costsPerRunningHour', costsPerRunningHour , self)
@@ -2330,7 +2330,7 @@ class Flow(ModelingElement):
             # Fehlermeldung:
             raise Exception('Achtung: Wenn val_ref genutzt wird, muss zugehöriges nominal_val definiert werden, da: value = val_ref * nominal_val!')
           
-          self.val_rel = cTS_vector('val_rel',val_rel, self)
+          self.val_rel = TimeSeriesVector('val_rel', val_rel, self)
         
         self.investArgs          = investArgs
         # Info: Plausi-Checks erst, wenn Flow self.comp kennt.
@@ -2436,8 +2436,8 @@ class Flow(ModelingElement):
             (lb, ub, fix_value) = self.featureInvest.getMinMaxOfDefiningVar()
               
         # TODO --> wird trotzdem modelliert auch wenn value = konst -> Sinnvoll?        
-        self.mod.var_val = cVariable_TS('val', modBox.nrOfTimeSteps, self, modBox, min = lb, max = ub, value = fix_value)
-        self.mod.var_sumFlowHours = cVariable('sumFlowHours', 1, self, modBox, min = self.sumFlowHours_min, max = self.sumFlowHours_max)
+        self.mod.var_val = TimeSeriesVariable('val', modBox.nrOfTimeSteps, self, modBox, min = lb, max = ub, value = fix_value)
+        self.mod.var_sumFlowHours = Variable('sumFlowHours', 1, self, modBox, min = self.sumFlowHours_min, max = self.sumFlowHours_max)
         # ! Die folgenden Variablen müssen erst von featureOn erstellt worden sein:
         self.mod.var_on                               = self.featureOn.getVar_on()           # mit None belegt, falls nicht notwendig           
         self.mod.var_switchOn, self.mod.var_switchOff = self.featureOn.getVars_switchOnOff() # mit None belegt, falls nicht notwendig           
@@ -2465,7 +2465,7 @@ class Flow(ModelingElement):
 
         # eq: var_sumFlowHours - sum(var_val(t)* dt(t) = 0
         
-        eq_sumFlowHours = cEquation('sumFlowHours',self,modBox,'eq') # general mean 
+        eq_sumFlowHours = Equation('sumFlowHours', self, modBox, 'eq') # general mean
         eq_sumFlowHours.addSummandSumOf(self.mod.var_val, modBox.dtInHours)  
         eq_sumFlowHours.addSummand(self.mod.var_sumFlowHours,-1)
         
@@ -2491,7 +2491,7 @@ class Flow(ModelingElement):
 
         if self.loadFactor_max is not None:  
           flowHoursPerInvestsize_max = modBox.dtInHours_tot * self.loadFactor_max # = fullLoadHours if investsize in [kW]
-          eq_flowHoursPerInvestsize_Max = cEquation('loadFactor_max',self,modBox,'ineq') # general mean 
+          eq_flowHoursPerInvestsize_Max = Equation('loadFactor_max', self, modBox, 'ineq') # general mean
           eq_flowHoursPerInvestsize_Max.addSummand(self.mod.var_sumFlowHours, 1)  
           if self.featureInvest is not None:
             eq_flowHoursPerInvestsize_Max.addSummand(self.featureInvest.mod.var_investmentSize, -1 * flowHoursPerInvestsize_max) 
@@ -2503,7 +2503,7 @@ class Flow(ModelingElement):
         
         if self.loadFactor_min is not None:
           flowHoursPerInvestsize_min = modBox.dtInHours_tot * self.loadFactor_min # = fullLoadHours if investsize in [kW]
-          eq_flowHoursPerInvestsize_Min = cEquation('loadFactor_min',self,modBox,'ineq')
+          eq_flowHoursPerInvestsize_Min = Equation('loadFactor_min', self, modBox, 'ineq')
           eq_flowHoursPerInvestsize_Min.addSummand(self.mod.var_sumFlowHours, -1)          
           if self.featureInvest is not None:
             eq_flowHoursPerInvestsize_Min.addSummand(self.featureInvest.mod.var_investmentSize,  flowHoursPerInvestsize_min) 
@@ -2539,12 +2539,12 @@ class Flow(ModelingElement):
         # z.B. max_PEF, max_CO2, ...
               
       
-    def addShareToGlobals(self, globalComp:Global, modBox) :
+    def addShareToGlobals(self, globalComp:GlobalConstraintsManager, modBox) :
         
         # Arbeitskosten:
         if self.costsPerFlowHour is not None: 
           # globalComp.addEffectsForVariable(aVariable, aEffect, aFactor)
-          # variable_costs          = cVector(self.mod.var_val, np.multiply(self.costsPerFlowHour, modBox.dtInHours))  
+          # variable_costs          = Vector(self.mod.var_val, np.multiply(self.costsPerFlowHour, modBox.dtInHours))
           # globalComp.costsOfOperating_eq.addSummand(self.mod.var_val, np.multiply(self.costsPerFlowHour.d_i, modBox.dtInHours)) # np.multiply = elementweise Multiplikation          
           shareHolder = self
           globalComp.addShareToOperation('costsPerFlowHour', shareHolder, self.mod.var_val, self.costsPerFlowHour, modBox.dtInHours)

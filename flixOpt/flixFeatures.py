@@ -385,19 +385,19 @@ class cFeatureOn(cFeature) :
         if self.useOnHours:
             aMax = None if (self.onHours_max is None) else self.onHours_max.d_i
             self.mod.var_onHours = VariableTS('onHours', modBox.nrOfTimeSteps, self.owner, modBox,
-                                              min = 0, max = aMax) # min separat
+                                             min = 0, max = aMax) # min separat
         # offHours:
         if self.useOffHours:
             aMax = None if (self.offHours_max is None) else self.offHours_max.d_i
             self.mod.var_offHours = VariableTS('offHours', modBox.nrOfTimeSteps, self.owner, modBox,
-                                               min = 0, max = aMax) # min separat
+                                             min = 0, max = aMax) # min separat 
 
 
         # Var SwitchOn
         if self.useSwitchOn:
-            self.mod.var_switchOn  = VariableTS('switchOn', modBox.nrOfTimeSteps, self.owner, modBox, isBinary = True)
+            self.mod.var_switchOn  = VariableTS('switchOn' , modBox.nrOfTimeSteps, self.owner, modBox, isBinary = True)
             self.mod.var_switchOff = VariableTS('switchOff', modBox.nrOfTimeSteps, self.owner, modBox, isBinary = True)
-            self.mod.var_nrSwitchOn = Variable('nrSwitchOn', 1, self.owner, modBox, max = self.switchOn_maxNr) # wenn max/min = None, dann bleibt das frei
+            self.mod.var_nrSwitchOn = VariableTS('nrSwitchOn' , 1, self.owner, modBox, max = self.switchOn_maxNr) # wenn max/min = None, dann bleibt das frei
         else:
             self.mod.var_switchOn  = None
             self.mod.var_switchOff = None

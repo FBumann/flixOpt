@@ -409,7 +409,7 @@ class cFeatureOn(cFeature):
                                                         isBinary=True)
             self.vars_and_eqs.var_switchOff = VariableTS('switchOff', modBox.nrOfTimeSteps, self.owner, modBox,
                                                          isBinary=True)
-            self.vars_and_eqs.var_nrSwitchOn = VariableTS('nrSwitchOn', 1, self.owner, modBox,
+            self.vars_and_eqs.var_nrSwitchOn = Variable('nrSwitchOn', 1, self.owner, modBox,
                                                           max=self.switchOn_maxNr)  # wenn max/min = None, dann bleibt das frei
         else:
             self.vars_and_eqs.var_switchOn = None
@@ -898,7 +898,7 @@ class cFeatureInvest(cFeature):
         # todo: vielleicht ist es aber auch ok, wenn der nominal_val belegt ist und einfach nicht genutzt wird....
         if self.args.investmentSize_is_fixed:
             assert ((self.fixedInvestmentSize is not None) and (
-                        self.fixedInvestmentSize != 0)), 'fixedInvestmentSize muss gesetzt werden'
+                    self.fixedInvestmentSize != 0)), 'fixedInvestmentSize muss gesetzt werden'
         else:
             assert self.fixedInvestmentSize is None, '!' + self.nameOfInvestmentSize + ' of ' + self.owner.label_full + ' must be None if investmentSize is variable'
 

@@ -26,8 +26,6 @@ from datetime import datetime
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-
-
 class flixAggregation:
     """
     aggregation organizing class

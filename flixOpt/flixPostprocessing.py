@@ -671,7 +671,7 @@ class flix_results():
             values[np.logical_and(values < 0,
                                   values > numericalZero)] = 0  # negative Werte durch numerische Auflösung löschen
             assert (
-                        values >= numericalZero).all(), 'Warning, Zeitreihen ' + aFlow.label_full + ' in inputs enthalten neg. Werte -> Darstellung Graph nicht korrekt'
+                    values >= numericalZero).all(), 'Warning, Zeitreihen ' + aFlow.label_full + ' in inputs enthalten neg. Werte -> Darstellung Graph nicht korrekt'
 
             if flix_results.isGreaterMinFlowHours(values, dtInHours,
                                                   minFlowHours):  # nur wenn gewisse FlowHours-Sum überschritten

@@ -11,7 +11,6 @@ import numpy as np
 
 from . import flixOptHelperFcts as Helpers
 
-
 pyomoEnv = None  # das ist module, das nur bei Bedarf belegt wird
 
 log = logging.getLogger(__name__)

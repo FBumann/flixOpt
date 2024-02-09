@@ -5,12 +5,9 @@ developed by Felix Panitz* and Peter Stange*
 * at Chair of Building Energy Systems and Heat Supply, Technische Universität Dresden
 """
 
-import numpy as np
-
-from . import flixOptHelperFcts as helpers
-from .basicModeling import *
-from .flixStructure import *
 from .flixFeatures import *
+from .flixStructure import *
+
 
 class BasicLinearTransformer(Component):
     """
@@ -19,7 +16,7 @@ class BasicLinearTransformer(Component):
     new_init_args = ['label', 'inputs', 'outputs', 'factor_Sets', 'segmentsOfFlows']
     not_used_args = ['label']
 
-    def __init__(self, label:str, inputs:list, outputs:list, exists=1, group:str=None, factor_Sets=None,
+    def __init__(self, label: str, inputs: list, outputs: list, exists=1, group: str = None, factor_Sets=None,
                  segmentsOfFlows=None, **kwargs):
         '''
         Parameters
@@ -77,7 +74,7 @@ class BasicLinearTransformer(Component):
         self.outputs = outputs
         self.factor_Sets = factor_Sets
         self.segmentsOfFlows = segmentsOfFlows
-        if (factor_Sets is None) and (segmentsOfFlows is None):            
+        if (factor_Sets is None) and (segmentsOfFlows is None):
             raise Exception('factor_Sets or segmentsOfFlows must be defined!')
         elif (factor_Sets is not None) and (segmentsOfFlows is not None):
             raise Exception('Either factor_Sets or segmentsOfFlows must \
@@ -85,13 +82,14 @@ class BasicLinearTransformer(Component):
 
         self.group = group
         # type checking
-        if isinstance(exists,int) or (isinstance(exists,(list,np.ndarray)) and all(item in {0, 1} for item in exists)):
+        if isinstance(exists, int) or (
+                isinstance(exists, (list, np.ndarray)) and all(item in {0, 1} for item in exists)):
             self.exists = TimeSeriesVector('exists', exists, self)
         else:
             raise ValueError("Invalid value for exists. Must contain only 0 and 1")
 
         # copy information of group and exists to in-flows and out-flows
-        for flow in self.inputs+self.outputs:
+        for flow in self.inputs + self.outputs:
             flow.group = self.group
 
             flow.exists = TimeSeriesVector('exists', exists, flow)
@@ -146,22 +144,22 @@ class BasicLinearTransformer(Component):
             self.degreesOfFreedom = (len(self.inputs) + len(self.outputs)) - len(self.factor_Sets)
             if self.degreesOfFreedom <= 0:
                 raise Exception(self.label + ': ' + str(len(self.factor_Sets)) + ' Gleichungen VERSUS '
-                                + str(len(self.inputs+self.outputs)) + ' Variablen!!!')
+                                + str(len(self.inputs + self.outputs)) + ' Variablen!!!')
 
         # linear segments:
         else:
-            
+
             # check if investsize is variable for any flow:            
-            for flow in (self.inputs+self.outputs):
+            for flow in (self.inputs + self.outputs):
                 if (flow.investArgs is not None) and \
-                    not (flow.investArgs.investmentSize_is_fixed):                
-                        raise Exception('linearSegmentsOfFlows (in '+
-                                        self.label_full +
-                                        ') and variable nominal_value'+
-                                        '(invest_size) (in flow ' + 
-                                        flow.label_full + 
-                                        ') , does not make sense together!')
-            
+                        not (flow.investArgs.investmentSize_is_fixed):
+                    raise Exception('linearSegmentsOfFlows (in ' +
+                                    self.label_full +
+                                    ') and variable nominal_value' +
+                                    '(invest_size) (in flow ' +
+                                    flow.label_full +
+                                    ') , does not make sense together!')
+
             # Flow als Keys rauspicken und alle Stützstellen als cTS_Vector:
             self.segmentsOfFlows_TS = self.segmentsOfFlows
             for aFlow in self.segmentsOfFlows.keys():
@@ -177,7 +175,7 @@ class BasicLinearTransformer(Component):
                                                                 get_var_on=get_var_on,
                                                                 checkListOfFlows=self.inputs + self.outputs)  # erst hier, damit auch nach __init__() noch Übergabe möglich.
 
-    def declareVarsAndEqs(self, modBox:EnergySystemModel):
+    def declareVarsAndEqs(self, modBox: EnergySystemModel):
         """
         Deklarieren von Variablen und Gleichungen
 
@@ -193,7 +191,7 @@ class BasicLinearTransformer(Component):
         else:
             self.feature_linSegments.declareVarsAndEqs(modBox)
 
-    def doModeling(self, modBox:EnergySystemModel, timeIndexe):
+    def doModeling(self, modBox: EnergySystemModel, timeIndexe):
         """
         Durchführen der Modellierung?
 
@@ -223,10 +221,12 @@ class BasicLinearTransformer(Component):
                 eq_linearFlowRelation_i = Equation('linearFlowRelation_' + str(i), self, modBox)
                 for inFlow in leftSideFlows:
                     aFactor = aFactorVec_Dict[inFlow].d_i
-                    eq_linearFlowRelation_i.addSummand(inFlow.vars_and_eqs.var_val, aFactor)  # input1.val[t]      * factor[t]
+                    eq_linearFlowRelation_i.addSummand(inFlow.vars_and_eqs.var_val,
+                                                       aFactor)  # input1.val[t]      * factor[t]
                 for outFlow in rightSideFlows:
                     aFactor = aFactorVec_Dict[outFlow].d_i
-                    eq_linearFlowRelation_i.addSummand(outFlow.vars_and_eqs.var_val, -aFactor)  # output.val[t] * -1 * factor[t]
+                    eq_linearFlowRelation_i.addSummand(outFlow.vars_and_eqs.var_val,
+                                                       -aFactor)  # output.val[t] * -1 * factor[t]
 
                 eq_linearFlowRelation_i.addRightSide(0)  # nur zur Komplettisierung der Gleichung
 
@@ -273,9 +273,9 @@ class Boiler(BasicLinearTransformer):
     """
     class Boiler
     """
-    new_init_args = ['label', 'eta', 'Q_fu', 'Q_th',]
+    new_init_args = ['label', 'eta', 'Q_fu', 'Q_th', ]
     not_used_args = ['label', 'inputs', 'outputs', 'factor_Sets']
-    
+
     def __init__(self, label, eta, Q_fu, Q_th, **kwargs):
         '''
         constructor for boiler
@@ -369,9 +369,9 @@ class HeatPump(BasicLinearTransformer):
     """
     class HeatPump
     """
-    new_init_args = ['label', 'COP', 'P_el', 'Q_th',]
+    new_init_args = ['label', 'COP', 'P_el', 'Q_th', ]
     not_used_args = ['label', 'inputs', 'outputs', 'factor_Sets']
-    
+
     def __init__(self, label, COP, P_el, Q_th, **kwargs):
         '''
         Parameters
@@ -386,7 +386,7 @@ class HeatPump(BasicLinearTransformer):
             thermal output-flow.
         **kwargs : see motherclasses
         '''
-        
+
         # super:
         heatPump_bilanz = {P_el: COP, Q_th: 1}  # TODO: Achtung eta ist hier noch nicht TS-vector!!!
         super().__init__(label, inputs=[P_el], outputs=[Q_th], factor_Sets=[heatPump_bilanz], **kwargs)
@@ -409,7 +409,7 @@ class CoolingTower(BasicLinearTransformer):
     """
     Klasse CoolingTower
     """
-    new_init_args = ['label', 'specificElectricityDemand', 'P_el', 'Q_th',]
+    new_init_args = ['label', 'specificElectricityDemand', 'P_el', 'Q_th', ]
     not_used_args = ['label', 'inputs', 'outputs', 'factor_Sets']
 
     def __init__(self, label, specificElectricityDemand, P_el, Q_th, **kwargs):
@@ -479,7 +479,6 @@ class CHPunit(BasicLinearTransformer):
         **kwargs : 
         
         '''
-        
 
         # super:
         waerme_glg = {Q_fu: eta_th, Q_th: 1}
@@ -510,7 +509,7 @@ class CHPunit(BasicLinearTransformer):
 
 
 def KWKektA(label: str, nominal_val: float, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
-            eta_th: list, eta_el: list, exists=None, group = None, **kwargs)->list:
+            eta_th: list, eta_el: list, exists=None, group=None, **kwargs) -> list:
     '''
     EKT A - Modulation, linear interpolation
 
@@ -556,10 +555,10 @@ def KWKektA(label: str, nominal_val: float, BusFuel: Bus, BusTh: Bus, BusEl: Bus
     # filtering,because eta can not be 0
     for eta in [eta_el, eta_th]:
         for i in range(len(eta)):
-            if isinstance(eta[i] , (float, int)) and eta[i]==0:
-                eta[i]=0.0000001
-            elif isinstance(eta[i] , (np.ndarray)):
-                eta[i][ eta[i] ==0 ] = 0.0000001
+            if isinstance(eta[i], (float, int)) and eta[i] == 0:
+                eta[i] = 0.0000001
+            elif isinstance(eta[i], (np.ndarray)):
+                eta[i][eta[i] == 0] = 0.0000001
 
     eta_thA = eta_th[0]
     eta_thB = eta_th[1]
@@ -571,16 +570,16 @@ def KWKektA(label: str, nominal_val: float, BusFuel: Bus, BusTh: Bus, BusEl: Bus
     # Transformer 1
     Qin = Flow(label="Qfu", bus=BusFuel, nominal_val=nominal_val, min_rel=1, **kwargs)
     Qout = Flow(label="Helper" + label + 'Fu', bus=HelperBus)
-    EKTIn = BasicLinearTransformer(label=label + "In", exists= exists, group = group,
+    EKTIn = BasicLinearTransformer(label=label + "In", exists=exists, group=group,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
     # EKT A
-    EKTA = CHPunit(label=label + "A", exists= exists, group = group,
+    EKTA = CHPunit(label=label + "A", exists=exists, group=group,
                    eta_th=eta_thA, eta_el=eta_elA,
                    P_el=Flow(label="Pel", bus=BusEl),
                    Q_fu=Flow(label="Helper" + label + 'A', bus=HelperBus),
                    Q_th=Flow(label="Qth", bus=BusTh))
     # EKT B
-    EKTB = CHPunit(label=label + "B", exists= exists, group = group,
+    EKTB = CHPunit(label=label + "B", exists=exists, group=group,
                    eta_th=eta_thB, eta_el=eta_elB,
                    P_el=Flow(label="Pel", bus=BusEl),
                    Q_fu=Flow(label="Helper" + label + 'B', bus=HelperBus),
@@ -589,9 +588,9 @@ def KWKektA(label: str, nominal_val: float, BusFuel: Bus, BusTh: Bus, BusEl: Bus
 
 
 def KWKektB(label: str, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
-            nominal_val_Qfu:float, segQth: list[float], segPel: list[float],
-            costsPerFlowHour_fuel:dict=None, costsPerFlowHour_th:dict=None, costsPerFlowHour_el:dict=None,
-            iCanSwitchOff=True, exists=None, group = None, investArgs:InvestmentParameters=None, **kwargs)->list:
+            nominal_val_Qfu: float, segQth: list[float], segPel: list[float],
+            costsPerFlowHour_fuel: dict = None, costsPerFlowHour_th: dict = None, costsPerFlowHour_el: dict = None,
+            iCanSwitchOff=True, exists=None, group=None, investArgs: InvestmentParameters = None, **kwargs) -> list:
     '''
     EKT B - On/Off, interpolation with Base Points
     Creates a KWK with a variable rate between electricity and heat production
@@ -654,7 +653,7 @@ def KWKektB(label: str, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
 
     # Create Lists for segments_of_flows
     segQfu_el = np.linspace(start=0.0001, stop=nominal_val_Qfu, num=len(segPel)).tolist()
-    segQfu_th = segQfu_el[::-1]     # reversed
+    segQfu_th = segQfu_el[::-1]  # reversed
     # Apply proper formating for segments of flows, rounding to avoid numerical error, which leads to excess in HelperBus
     # TODO: Is this necessary?
     nominal_val_Qfu = round(nominal_val_Qfu, 4)
@@ -681,14 +680,14 @@ def KWKektB(label: str, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
     Qin = Flow(label="Qfu", bus=BusFuel, nominal_val=nominal_val_Qfu, min_rel=1, max_rel=1,
                costsPerFlowHour=costsPerFlowHour_fuel, **kwargs)
     Qout = Flow(label="Helper" + label + 'Fu', bus=HelperBus)
-    EKTIn = BasicLinearTransformer(label=label + "In", exists= exists, group = group,
+    EKTIn = BasicLinearTransformer(label=label + "In", exists=exists, group=group,
                                    inputs=[Qin], outputs=[Qout], factor_Sets=[{Qin: 1, Qout: 1}])
 
     # Transformer Strom
     P_el = Flow(label="Pel", bus=BusEl, nominal_val=max(segPel), costsPerFlowHour=costsPerFlowHour_el)
     Q_fu = Flow(label="Helper" + label + 'A', bus=HelperBus, nominal_val=nominal_val_Qfu)
     segs_el = {Q_fu: segQfu_el, P_el: segPel.copy()}
-    EKTA = BasicLinearTransformer(label=label + "A", exists= exists, group = group,
+    EKTA = BasicLinearTransformer(label=label + "A", exists=exists, group=group,
                                   outputs=[P_el], inputs=[Q_fu], segmentsOfFlows=segs_el)
 
     # Transformer Wärme
@@ -696,7 +695,7 @@ def KWKektB(label: str, BusFuel: Bus, BusTh: Bus, BusEl: Bus,
                 investArgs=investArgs)
     Q_fu2 = Flow(label="Helper" + label + 'B', bus=HelperBus)
     segs_th = {Q_fu2: segQfu_th, Q_th: segQth}
-    EKTB = BasicLinearTransformer(label=label + "B", exists= exists, group = group,
+    EKTB = BasicLinearTransformer(label=label + "B", exists=exists, group=group,
                                   outputs=[Q_th], inputs=[Q_fu2], segmentsOfFlows=segs_th)
 
     return [EKTIn, EKTA, EKTB]
@@ -729,12 +728,12 @@ class WasteHeatPump(BasicLinearTransformer):
         # super:
         heatPump_bilanzEl = {P_el: COP, Q_th: 1}
         if isinstance(COP, TimeSeriesData):
-            COP=COP.value
+            COP = COP.value
             heatPump_bilanzAb = {Q_ab: COP / (COP - 1), Q_th: 1}
         else:
-            heatPump_bilanzAb = {Q_ab: COP/(COP-1), Q_th: 1}
+            heatPump_bilanzAb = {Q_ab: COP / (COP - 1), Q_th: 1}
         super().__init__(label, inputs=[P_el, Q_ab], outputs=[Q_th],
-                         factor_Sets=[heatPump_bilanzEl,heatPump_bilanzAb], **kwargs)
+                         factor_Sets=[heatPump_bilanzEl, heatPump_bilanzAb], **kwargs)
 
         # args to attributes:
         self.COP = TimeSeriesVector('COP', COP, self)  # thermischer Wirkungsgrad
@@ -767,13 +766,13 @@ class Storage(Component):
     # param_defalt  = property(get_params())
 
     new_init_args = ['label', 'inFlow', 'outFlow', 'capacity_inFlowHours', 'min_rel_chargeState', 'max_rel_chargeState',
-                 'chargeState0_inFlowHours', 'charge_state_end_min', 'charge_state_end_max', 'eta_load',
-                 'eta_unload', 'fracLossPerHour', 'avoidInAndOutAtOnce' 'investArgs']
+                     'chargeState0_inFlowHours', 'charge_state_end_min', 'charge_state_end_max', 'eta_load',
+                     'eta_unload', 'fracLossPerHour', 'avoidInAndOutAtOnce' 'investArgs']
 
     not_used_args = ['label']
 
     # capacity_inFlowHours: float, 'lastValueOfSim', None
-    def __init__(self, label, inFlow, outFlow, capacity_inFlowHours, exists = 1, group = None,
+    def __init__(self, label, inFlow, outFlow, capacity_inFlowHours, exists=1, group=None,
                  min_rel_chargeState=0, max_rel_chargeState=1, chargeState0_inFlowHours=0,
                  charge_state_end_min=None, charge_state_end_max=None, eta_load=1, eta_unload=1,
                  fracLossPerHour=0, avoidInAndOutAtOnce=True, investArgs=None, **kwargs):
@@ -840,13 +839,13 @@ class Storage(Component):
 
         self.group = group
 
-        #type checking
-        if isinstance(exists,int):
+        # type checking
+        if isinstance(exists, int):
             if exists in (0, 1):
                 self.exists = TimeSeriesVector('exists', exists, self)
             else:
                 raise ValueError("Invalid value for exists. Must contain only 0 and 1")
-        elif isinstance(exists,(list, np.ndarray)):
+        elif isinstance(exists, (list, np.ndarray)):
             if all(item in {0, 1} for item in exists):
                 self.exists = TimeSeriesVector('exists', np.append(exists, exists[-1]), self)
             else:
@@ -901,7 +900,7 @@ class Storage(Component):
 
         self.isStorage = True  # for postprocessing
 
-    def declareVarsAndEqs(self, modBox:EnergySystemModel):
+    def declareVarsAndEqs(self, modBox: EnergySystemModel):
         """
         Deklarieren von Variablen und Gleichungen
 
@@ -920,15 +919,15 @@ class Storage(Component):
             if np.isscalar(lb):
                 pass
             else:
-                lb=np.append(lb,0)#self.charge_state_end_min)
+                lb = np.append(lb, 0)  # self.charge_state_end_min)
             if np.isscalar(ub):
                 pass
             else:
-                ub=np.append(ub,self.capacity_inFlowHours)#charge_state_end_max)
+                ub = np.append(ub, self.capacity_inFlowHours)  # charge_state_end_max)
 
         else:
             (lb, ub, fix_value) = self.featureInvest.getMinMaxOfDefiningVar()
-            
+
         if np.isscalar(lb):
             pass
         else:
@@ -938,7 +937,8 @@ class Storage(Component):
         else:
             ub = np.append(ub, ub[-1])  # charge_state_end_max)
 
-        self.vars_and_eqs.var_charge_state = VariableTS('charge_state', modBox.nrOfTimeSteps + 1, self, modBox, min=lb, max=ub,
+        self.vars_and_eqs.var_charge_state = VariableTS('charge_state', modBox.nrOfTimeSteps + 1, self, modBox, min=lb,
+                                                        max=ub,
                                                         value=fix_value)  # Eins mehr am Ende!
         self.vars_and_eqs.var_charge_state.activateBeforeValues(self.chargeState0_inFlowHours, True)
         self.vars_and_eqs.var_nettoFlow = VariableTS('nettoFlow', modBox.nrOfTimeSteps, self, modBox,
@@ -1015,7 +1015,8 @@ class Storage(Component):
         self.eq_charge_state = Equation('charge_state', self, modBox, eqType='eq')
         self.eq_charge_state.addSummand(self.vars_and_eqs.var_charge_state,
                                         -1 * (1 - self.fracLossPerHour.d_i * modBox.dtInHours),
-                                        timeIndexeChargeState[:-1])  # sprich 0 .. end-1 % nach letztem Zeitschritt gibt es noch einen weiteren Ladezustand!
+                                        timeIndexeChargeState[
+                                        :-1])  # sprich 0 .. end-1 % nach letztem Zeitschritt gibt es noch einen weiteren Ladezustand!
         self.eq_charge_state.addSummand(self.vars_and_eqs.var_charge_state, 1, timeIndexeChargeState[1:])  # 1:end
         self.eq_charge_state.addSummand(self.inFlow.vars_and_eqs.var_val, -1 * self.eta_load.d_i * modBox.dtInHours)
         self.eq_charge_state.addSummand(self.outFlow.vars_and_eqs.var_val,
@@ -1090,11 +1091,11 @@ class SourceSink(Component):
     # source : Flow
     # sink   : Flow
 
-    new_init_args = ['label', 'source', 'sink','avoidInAndOutAtOnce']
+    new_init_args = ['label', 'source', 'sink', 'avoidInAndOutAtOnce']
 
     not_used_args = ['label']
 
-    def __init__(self, label, source, sink, exists=1, group:str=None, avoidInAndOutAtOnce = True, **kwargs):
+    def __init__(self, label, source, sink, exists=1, group: str = None, avoidInAndOutAtOnce=True, **kwargs):
         '''
         Parameters
         ----------
@@ -1127,13 +1128,14 @@ class SourceSink(Component):
 
         self.group = group
         # type checking
-        if isinstance(exists,int) or (isinstance(exists,(list,np.ndarray)) and all(item in {0, 1} for item in exists)):
+        if isinstance(exists, int) or (
+                isinstance(exists, (list, np.ndarray)) and all(item in {0, 1} for item in exists)):
             self.exists = TimeSeriesVector('exists', exists, self)
         else:
             raise ValueError("Invalid value for exists. Must contain only 0 and 1")
 
         # copy information of group and exists to in-flows and out-flows
-        for flow in self.inputs+self.outputs:
+        for flow in self.inputs + self.outputs:
             flow.group = self.group
 
             flow.exists = TimeSeriesVector('exists', exists, flow)
@@ -1144,9 +1146,9 @@ class SourceSink(Component):
         self.source.activateOnValue()
         self.sink.activateOnValue()
 
-        if self.avoidInAndOutAtOnce: 
+        if self.avoidInAndOutAtOnce:
             self.featureAvoidInAndOutAtOnce = cFeatureAvoidFlowsAtOnce('sinkOrSource', self, [self.source, self.sink])
-        else: 
+        else:
             self.featureAvoidInAndOutAtOnce = None
 
     def declareVarsAndEqs(self, modBox):
@@ -1168,7 +1170,7 @@ class SourceSink(Component):
         """
         super().doModeling(modBox, timeIndexe)
         # Entweder Sink-Flow oder Source-Flow aktiv. Nicht beide Zeitgleich!
-        if self.featureAvoidInAndOutAtOnce is not None: 
+        if self.featureAvoidInAndOutAtOnce is not None:
             self.featureAvoidInAndOutAtOnce.doModeling(modBox, timeIndexe)
 
 
@@ -1179,7 +1181,7 @@ class Source(Component):
     new_init_args = ['label', 'source']
     not_used_args = ['label']
 
-    def __init__(self, label, source, exists=1, group:str=None, **kwargs):
+    def __init__(self, label, source, exists=1, group: str = None, **kwargs):
         '''       
         Parameters
         ----------
@@ -1199,7 +1201,7 @@ class Source(Component):
         None.
 
         '''
-        
+
         """
         Konstruktor für Instanzen der Klasse Source
 
@@ -1213,13 +1215,14 @@ class Source(Component):
 
         self.group = group
         # type checking
-        if isinstance(exists,int) or (isinstance(exists,(list,np.ndarray)) and all(item in {0, 1} for item in exists)):
+        if isinstance(exists, int) or (
+                isinstance(exists, (list, np.ndarray)) and all(item in {0, 1} for item in exists)):
             self.exists = TimeSeriesVector('exists', exists, self)
         else:
             raise ValueError("Invalid value for exists. Must contain only 0 and 1")
 
         # copy information of group and exists to in-flows and out-flows
-        for flow in self.inputs+self.outputs:
+        for flow in self.inputs + self.outputs:
             flow.group = self.group
 
             flow.exists = TimeSeriesVector('exists', exists, flow)
@@ -1234,7 +1237,7 @@ class Sink(Component):
     new_init_args = ['label', 'source']
     not_used_args = ['label']
 
-    def __init__(self, label, sink, exists=1, group:str=None, **kwargs):
+    def __init__(self, label, sink, exists=1, group: str = None, **kwargs):
         '''
         constructor of sink 
 
@@ -1257,20 +1260,21 @@ class Sink(Component):
         None.
 
         '''
-        
+
         super().__init__(label)
         self.sink = sink
         self.inputs.append(sink)  # ein Input-Flow
 
         self.group = group
         # type checking
-        if isinstance(exists,int) or (isinstance(exists,(list,np.ndarray)) and all(item in {0, 1} for item in exists)):
+        if isinstance(exists, int) or (
+                isinstance(exists, (list, np.ndarray)) and all(item in {0, 1} for item in exists)):
             self.exists = TimeSeriesVector('exists', exists, self)
         else:
             raise ValueError("Invalid value for exists. Must contain only 0 and 1")
 
         # copy information of group and exists to in-flows and out-flows
-        for flow in self.inputs+self.outputs:
+        for flow in self.inputs + self.outputs:
             flow.group = self.group
 
             flow.exists = TimeSeriesVector('exists', exists, flow)
@@ -1284,9 +1288,9 @@ class Transportation(Component):
     # TODO: investmentsize only on 1 flow
     # TODO: automatic investArgs for both in-flows (or alternatively both out-flows!)
     # TODO: optional: capacities should be recognised for losses
-    
+
     def __init__(self, label, in1, out1, in2=None, out2=None, loss_rel=0,
-                 loss_abs=0, isAlwaysOn=True, 
+                 loss_abs=0, isAlwaysOn=True,
                  avoidFlowInBothDirectionsAtOnce=True, **kwargs):
         '''
         pipe/cable/connector between side A and side B
@@ -1327,53 +1331,54 @@ class Transportation(Component):
         None.
 
         '''
-        
+
         super().__init__(label)
-        
+
         self.in1 = in1
         self.out1 = out1
         self.in2 = in2
         self.out2 = out2
-        
+
         self.inputs.append(in1)
         self.outputs.append(out1)
         if in2 is not None:
             self.inputs.append(in2)
-            self.outputs.append(out2)        
+            self.outputs.append(out2)
             # check buses:
             assert in2.bus == out1.bus, 'in2.bus is not equal out1.bus!'
             assert out2.bus == in1.bus, 'out2.bus is not equal in1.bus!'
 
-        self.loss_rel = TimeSeriesVector('loss_rel', loss_rel, self)#
-        self.loss_abs = TimeSeriesVector('loss_abs', loss_abs, self)#
+        self.loss_rel = TimeSeriesVector('loss_rel', loss_rel, self)  #
+        self.loss_abs = TimeSeriesVector('loss_abs', loss_abs, self)  #
         self.isAlwaysOn = isAlwaysOn
         self.avoidFlowInBothDirectionsAtOnce = avoidFlowInBothDirectionsAtOnce
-        
+
         if self.avoidFlowInBothDirectionsAtOnce and (in2 is not None):
             self.featureAvoidBothDirectionsAtOnce = cFeatureAvoidFlowsAtOnce('feature_avoidBothDirectionsAtOnce', self,
-                                                                 [self.in1, self.in2])
+                                                                             [self.in1, self.in2])
 
-    def declareVarsAndEqs(self, modBox:EnergySystemModel):
+    def declareVarsAndEqs(self, modBox: EnergySystemModel):
         """
         Deklarieren von Variablen und Gleichungen
         
         :param modBox:
         :return:
         """
-        super().declareVarsAndEqs(modBox)        
+        super().declareVarsAndEqs(modBox)
 
     def doModeling(self, modBox, timeIndexe):
         super().doModeling(modBox, timeIndexe)
 
         # not both directions at once:
-        if self.avoidFlowInBothDirectionsAtOnce and (self.in2 is not None): self.featureAvoidBothDirectionsAtOnce.doModeling(modBox, timeIndexe)
+        if self.avoidFlowInBothDirectionsAtOnce and (
+                self.in2 is not None): self.featureAvoidBothDirectionsAtOnce.doModeling(modBox, timeIndexe)
 
         # first direction
         # eq: in(t)*(1-loss_rel(t)) = out(t) + on(t)*loss_abs(t)
         self.eq_dir1 = Equation('transport_dir1', self, modBox, eqType='eq')
         self.eq_dir1.addSummand(self.in1.vars_and_eqs.var_val, (1 - self.loss_rel.d_i))
         self.eq_dir1.addSummand(self.out1.vars_and_eqs.var_val, -1)
-        if (self.loss_abs.d_i is not None) and np.any(self.loss_abs.d_i!=0) :
+        if (self.loss_abs.d_i is not None) and np.any(self.loss_abs.d_i != 0):
             assert self.in1.vars_and_eqs.var_on is not None, 'Var on wird benötigt für in1! Set min_rel!'
             self.eq_dir1.addSummand(self.in1.vars_and_eqs.var_on, -1 * self.loss_abs.d_i)
 
@@ -1383,17 +1388,17 @@ class Transportation(Component):
             self.eq_dir2 = Equation('transport_dir2', self, modBox, eqType='eq')
             self.eq_dir2.addSummand(self.in2.vars_and_eqs.var_val, 1 - self.loss_rel.d_i)
             self.eq_dir2.addSummand(self.out2.vars_and_eqs.var_val, -1)
-            if (self.loss_abs.d_i is not None) and np.any(self.loss_abs.d_i!=0):
+            if (self.loss_abs.d_i is not None) and np.any(self.loss_abs.d_i != 0):
                 assert self.in2.vars_and_eqs.var_on is not None, 'Var on wird benötigt für in2! Set min_rel!'
                 self.eq_dir2.addSummand(self.in2.vars_and_eqs.var_on, -1 * self.loss_abs.d_i)
-        
+
         # always On (in at least one direction)
         # eq: in1.on(t) +in2.on(t) >= 1 # TODO: this is some redundant to avoidFlowInBothDirections
         if self.isAlwaysOn:
             self.eq_alwaysOn = Equation('alwaysOn', self, modBox, eqType='ineq')
             self.eq_alwaysOn.addSummand(self.in1.vars_and_eqs.var_on, -1)
-            if (self.in2 is not None) : self.eq_alwaysOn.addSummand(self.in2.vars_and_eqs.var_on, -1)
-            self.eq_alwaysOn.addRightSide(-.5)# wg binärungenauigkeit 0.5 statt 1
+            if (self.in2 is not None): self.eq_alwaysOn.addSummand(self.in2.vars_and_eqs.var_on, -1)
+            self.eq_alwaysOn.addRightSide(-.5)  # wg binärungenauigkeit 0.5 statt 1
 
         # equate nominal value of second direction
         if (self.in2 is not None):
@@ -1403,7 +1408,8 @@ class Transportation(Component):
                 if bothInFlowsHaveFeatureInvest:
                     # eq: in1.nom_value = in2.nom_value
                     self.eq_nom_value = Equation('equalSizeInBothDirections', self, modBox, eqType='eq')
-                    self.eq_nom_value.addSummand(self.in1.featureInvest.mod.var_investmentSize, 1)            
+                    self.eq_nom_value.addSummand(self.in1.featureInvest.mod.var_investmentSize, 1)
                     self.eq_nom_value.addSummand(self.in2.featureInvest.vars_and_eqs.var_investmentSize, -1)
                 else:
-                    raise Exception('define investArgs also for second In-Flow (values can be empty!)') # TODO: anders lösen (automatisiert)!
+                    raise Exception(
+                        'define investArgs also for second In-Flow (values can be empty!)')  # TODO: anders lösen (automatisiert)!

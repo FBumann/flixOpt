@@ -605,7 +605,7 @@ class BeforeValues:
         if aKey in self.beforeValues.keys():
             return self.beforeValues[aKey]  # returns (value, time)
         else:
-            return None
+            return None, None
 
     def print(self):
         for (element, varName) in self.beforeValues.keys():

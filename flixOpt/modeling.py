@@ -400,9 +400,10 @@ class VariableTS(Variable):
         # wenn beforeValue-Datensatz für linear_model gegeben:
         if self.linear_model.before_values is not None:
             value, _ = self.linear_model.before_values.getBeforeValues(self)   # für Variable rausziehen:
-            return value
-        else:
-            return self._before_value   # sonst Standard-BeforeValues von Energiesystem verwenden:
+            if value is not None:
+                return value
+        return self._before_value   # sonst Standard-BeforeValues verwenden:
+
 
     @before_value.setter
     def before_value(self, value: Union[int, float, np.ndarray, List[Union[int, float]]]):

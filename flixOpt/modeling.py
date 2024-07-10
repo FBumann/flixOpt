@@ -390,29 +390,23 @@ class VariableTS(Variable):
                  lower_bound: Optional[Union[int, float, np.ndarray]] = None,
                  upper_bound: Optional[Union[int, float, np.ndarray]] = None):
         assert length > 1, 'length is one, that seems not right for VariableTS'
-        self.activated_beforeValues = False
         super().__init__(label, length, owner, linear_model, is_binary=is_binary, value=value, lower_bound=lower_bound, upper_bound=upper_bound)
+        self.activated_beforeValues = False
+        self._before_value = None
+        self.before_value_is_start_value = False
 
     @property
     def before_value(self):
-        ## hole Startwert/letzten Wert vor diesem Segment:
-        assert self.activated_beforeValues, 'set_before_value() not executed'
         # wenn beforeValue-Datensatz für linear_model gegeben:
         if self.linear_model.before_values is not None:
-            # für Variable rausziehen:
-            (value, time) = self.linear_model.before_values.getBeforeValues(self)
+            value, _ = self.linear_model.before_values.getBeforeValues(self)   # für Variable rausziehen:
             return value
-        # sonst Standard-BeforeValues von Energiesystem verwenden:
         else:
-            return self.default_before_value
+            return self._before_value   # sonst Standard-BeforeValues von Energiesystem verwenden:
 
-    def set_before_value(self,
-                         default_before_value: Union[int, float],
-                         is_start_value: bool) -> None:  # is_start_value heißt ob es Speicherladezustand ist oder Nicht
-        # aktiviere Before-Werte. ZWINGENDER BEFEHL bei before-Werten
-        # TODO: Achtung: private Variablen wären besser, aber irgendwie nimmt er die nicht. Ich vermute, das liegt am fehlenden init
-        self.before_value_is_start_value = is_start_value
-        self.default_before_value = default_before_value  # Standardwerte für Simulationsstart im Energiesystem
+    @before_value.setter
+    def before_value(self, value: Union[int, float, np.ndarray, List[Union[int, float]]]):
+        self._before_value = value  # Standardwerte für Simulationsstart im Energiesystem
         self.activated_beforeValues = True
 
     def get_before_value_for_next_segment(self, last_index_of_segment: int) -> Tuple:

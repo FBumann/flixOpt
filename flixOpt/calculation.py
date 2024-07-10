@@ -9,9 +9,8 @@ import datetime
 import logging
 import math
 import pathlib
-import time
 import timeit
-from typing import List, Dict, Optional, Literal
+from typing import List, Dict, Optional, Literal, Union, Tuple
 
 import numpy as np
 
@@ -576,34 +575,38 @@ class SegmentedCalculation(Calculation):
 
 class BeforeValues:
     # managed die Before-Werte des segments:
-    def __init__(self, variables_ts: List[VariableTS], lastUsedIndex: int):
+    def __init__(self,
+                 variables_ts: List[VariableTS],
+                 from_index: int):
         self.beforeValues = {}
         # Sieht dann so aus = {(Element1, aVar1.name): (value, time),
         #                      (Element2, aVar2.name): (value, time),
         #                       ...                       }
-        for aVar in variables_ts:
-            aVar: VariableTS
-            if aVar.activated_beforeValues:
+        for variable in variables_ts:
+            if variable.activated_beforeValues:
                 # Before-Value holen:
-                (aValue, aTime) = aVar.get_before_value_for_next_segment(lastUsedIndex)
-                self.addBeforeValues(aVar, aValue, aTime)
+                value, time_stamp = variable.get_before_value_for_next_segment(from_index)
+                self.add_before_value(variable, value, time_stamp)
 
-    def addBeforeValues(self, aVar, aValue, aTime):
-        element = aVar.owner
-        aKey = (element, aVar.label)  # hier muss label genommen werden, da aVar sich ja ändert je linear_model!
+    def add_before_value(self,
+                         variable: VariableTS,
+                         value: Union[int, float, np.ndarray],
+                         time_stamp: np.datetime64
+                         ) -> None:
+        element = variable.owner
+        key = (element, variable.label)  # hier muss label genommen werden, da aVar sich ja ändert je linear_model!
         # before_values = aVar.result(aValue) # letzten zwei Werte
 
-        if aKey in self.beforeValues.keys():
+        if key in self.beforeValues.keys():
             raise Exception('setBeforeValues(): Achtung Wert würde überschrieben, Wert ist schon belegt!')
         else:
-            self.beforeValues.update({aKey: (aValue, aTime)})
+            self.beforeValues.update({key: (value, time_stamp)})
 
-    # return (value, time)
-    def getBeforeValues(self, aVar):
-        element = aVar.owner
-        aKey = (element, aVar.label)  # hier muss label genommen werden, da aVar sich ja ändert je linear_model!
-        if aKey in self.beforeValues.keys():
-            return self.beforeValues[aKey]  # returns (value, time)
+    def get_before_value(self, variable: VariableTS) -> Union[Tuple[float, float], Tuple[None, None]]:
+        element = variable.owner
+        key = (element, variable.label)  # hier muss label genommen werden, da aVar sich ja ändert je linear_model!
+        if key in self.beforeValues.keys():
+            return self.beforeValues[key]
         else:
             return None, None
 

@@ -399,7 +399,7 @@ class VariableTS(Variable):
     def before_value(self):
         # wenn beforeValue-Datensatz für linear_model gegeben:
         if self.linear_model.before_values is not None:
-            value, _ = self.linear_model.before_values.getBeforeValues(self)   # für Variable rausziehen:
+            value, _ = self.linear_model.before_values.get_before_value(self)   # für Variable rausziehen:
             if value is not None:
                 return value
         return self._before_value   # sonst Standard-BeforeValues verwenden:

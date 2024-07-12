@@ -583,6 +583,7 @@ class BeforeValues:
         #                      (Element2, aVar2.name): (value, time),
         #                       ...                       }
         for variable in variables_ts:
+            assert variable.activated_beforeValues == (variable.before_value is not None)
             if variable.before_value is not None:
                 # Before-Value holen:
                 value, time_stamp = variable.get_before_value_for_next_segment(from_index)

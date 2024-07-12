@@ -396,7 +396,7 @@ class VariableTS(Variable):
         self.before_value_is_start_value = False
 
     @property
-    def before_value(self):
+    def before_value(self) -> Optional[Union[int, float, np.ndarray, List[Union[int, float]]]]:
         # wenn beforeValue-Datensatz für linear_model gegeben:
         if self.linear_model.before_values is not None:
             value, _ = self.linear_model.before_values.get_before_value(self)   # für Variable rausziehen:

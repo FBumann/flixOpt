@@ -388,12 +388,13 @@ class VariableTS(Variable):
                  is_binary: bool = False,
                  value: Optional[Union[int, float, np.ndarray]] = None,
                  lower_bound: Optional[Union[int, float, np.ndarray]] = None,
-                 upper_bound: Optional[Union[int, float, np.ndarray]] = None):
+                 upper_bound: Optional[Union[int, float, np.ndarray]] = None,
+                 before_value_is_start_value: bool = False):
         assert length > 1, 'length is one, that seems not right for VariableTS'
         super().__init__(label, length, owner, linear_model, is_binary=is_binary, value=value, lower_bound=lower_bound, upper_bound=upper_bound)
         self.activated_beforeValues = False
         self._before_value = None
-        self.before_value_is_start_value = False
+        self.before_value_is_start_value = before_value_is_start_value
 
     @property
     def before_value(self) -> Optional[Union[int, float, np.ndarray, List[Union[int, float]]]]:

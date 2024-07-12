@@ -15,6 +15,7 @@ import numpy as np
 from pyomo.contrib import appsi
 
 from flixOpt import flixOptHelperFcts as helpers
+from flixOpt.core import Skalar
 
 pyomoEnv = None  # das ist module, das nur bei Bedarf belegt wird
 
@@ -400,7 +401,7 @@ class VariableTS(Variable):
     def before_value(self) -> Optional[Union[int, float, np.ndarray, List[Union[int, float]]]]:
         # wenn beforeValue-Datensatz für linear_model gegeben:
         if self.linear_model.before_values is not None:
-            value, _ = self.linear_model.before_values.get_before_value(self)   # für Variable rausziehen:
+            value = self.linear_model.before_values.get_before_value(self)   # für Variable rausziehen:
             if value is not None:
                 return value
         return self._before_value   # sonst Standard-BeforeValues verwenden:
@@ -409,17 +410,13 @@ class VariableTS(Variable):
     def before_value(self, value: Union[int, float, np.ndarray, List[Union[int, float]]]):
         self._before_value = value  # Standardwerte für Simulationsstart im Energiesystem
 
-    def get_before_value_for_next_segment(self, last_index_of_segment: int) -> Tuple:
+    def get_before_value_for_next_segment(self, last_index_of_segment: int) -> Skalar:
         # hole Startwert/letzten Wert für nächstes Segment:
-        # Wenn Speicherladezustand o.ä.
-        if self.before_value_is_start_value:
+        if self.before_value_is_start_value:   # Wenn Speicherladezustand o.ä.
             index = last_index_of_segment + 1  # = Ladezustand zum Startzeitpunkt des nächsten Segments
-        # sonst:
         else:
             index = last_index_of_segment  # Leistungswert beim Zeitpunkt VOR Startzeitpunkt vom nächsten Segment
-        time_stamp = self.linear_model.time_series_with_end[index]
-        value = self.result[index]
-        return value, time_stamp
+        return self.result[index]
 
 
 # class cInequation(Equation):

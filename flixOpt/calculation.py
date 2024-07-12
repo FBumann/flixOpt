@@ -585,13 +585,12 @@ class BeforeValues:
         for variable in variables_ts:
             if variable.before_value is not None:
                 # Before-Value holen:
-                value, time_stamp = variable.get_before_value_for_next_segment(from_index)
-                self.add_before_value(variable, value, time_stamp)
+                value= variable.get_before_value_for_next_segment(from_index)
+                self.add_before_value(variable, value)
 
     def add_before_value(self,
                          variable: VariableTS,
                          value: Union[int, float, np.ndarray],
-                         time_stamp: np.datetime64
                          ) -> None:
         element = variable.owner
         key = (element, variable.label)  # hier muss label genommen werden, da aVar sich ja ändert je linear_model!
@@ -600,7 +599,7 @@ class BeforeValues:
         if key in self.beforeValues.keys():
             raise Exception('setBeforeValues(): Achtung Wert würde überschrieben, Wert ist schon belegt!')
         else:
-            self.beforeValues.update({key: (value, time_stamp)})
+            self.beforeValues.update({key: value})
 
     def get_before_value(self, variable: VariableTS) -> Union[Tuple[float, float], Tuple[None, None]]:
         element = variable.owner

@@ -393,7 +393,6 @@ class VariableTS(Variable):
                  before_value_is_start_value: bool = False):
         assert length > 1, 'length is one, that seems not right for VariableTS'
         super().__init__(label, length, owner, linear_model, is_binary=is_binary, value=value, lower_bound=lower_bound, upper_bound=upper_bound)
-        self.activated_beforeValues = False
         self._before_value = before_value
         self.before_value_is_start_value = before_value_is_start_value
 
@@ -409,7 +408,6 @@ class VariableTS(Variable):
     @before_value.setter
     def before_value(self, value: Union[int, float, np.ndarray, List[Union[int, float]]]):
         self._before_value = value  # Standardwerte für Simulationsstart im Energiesystem
-        self.activated_beforeValues = True
 
     def get_before_value_for_next_segment(self, last_index_of_segment: int) -> Tuple:
         # hole Startwert/letzten Wert für nächstes Segment:

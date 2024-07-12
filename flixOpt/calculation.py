@@ -529,7 +529,7 @@ class SegmentedCalculation(Calculation):
                         aReferedVariable = result_to_append_var[key]
                         aReferedVariable: VariableTS
                         withEnd = isinstance(aReferedVariable, VariableTS) \
-                                  and aReferedVariable.activated_beforeValues \
+                                  and (aReferedVariable.before_value is not None) \
                                   and aReferedVariable.before_value_is_start_value
 
                         # nested:

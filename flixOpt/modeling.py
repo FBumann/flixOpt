@@ -55,7 +55,6 @@ class LinearModel:
         self.objective_result = None  # Ergebnis
         self.duration = {}  # Laufzeiten
         self.solver_log = None  # logging und parsen des solver-outputs
-        self.before_values: Optional[BeforeValues] = None  # Handling Values before first timestep
 
         if self.modeling_language == 'pyomo':
             global pyomoEnv  # als globale Variable

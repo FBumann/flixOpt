@@ -472,8 +472,14 @@ class SegmentedCalculation(Calculation):
             # Startwerte übergeben von Vorgänger-system_model:
             if i > 0:
                 system_model_of_prior_segment = self.system_models[i - 1]
+                before_values = {
+                    (variable.owner, variable.label): variable.get_before_value_for_next_segment(nr_of_used_steps - 1)
+                    for variable in system_model_of_prior_segment.all_ts_variables if variable.before_value is not None
+                }
+
                 system_model_of_segment.before_values = BeforeValues(system_model_of_prior_segment.all_ts_variables,
                                                            nr_of_used_steps - 1)
+                assert before_values == system_model_of_segment.before_values.beforeValues
                 print('### before_values: ###')
                 system_model_of_segment.before_values.print()
                 print('#######################')  # transferStartValues(segment, segmentBefore)
@@ -585,7 +591,7 @@ class BeforeValues:
         for variable in variables_ts:
             if variable.before_value is not None:
                 # Before-Value holen:
-                value= variable.get_before_value_for_next_segment(from_index)
+                value = variable.get_before_value_for_next_segment(from_index)
                 self.add_before_value(variable, value)
 
     def add_before_value(self,
@@ -601,13 +607,13 @@ class BeforeValues:
         else:
             self.beforeValues.update({key: value})
 
-    def get_before_value(self, variable: VariableTS) -> Union[Tuple[float, float], Tuple[None, None]]:
+    def get_before_value(self, variable: VariableTS) -> Optional[Union[float]]:
         element = variable.owner
         key = (element, variable.label)  # hier muss label genommen werden, da aVar sich ja ändert je linear_model!
         if key in self.beforeValues.keys():
             return self.beforeValues[key]
         else:
-            return None, None
+            return None
 
     def print(self):
         for (element, varName) in self.beforeValues.keys():

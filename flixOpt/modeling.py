@@ -107,7 +107,6 @@ class LinearModel:
     def nr_of_single_variables(self) -> int:
         return sum([var.length for var in self.variables])
 
-
     def solve(self,
               mip_gap: float,
               time_limit_seconds: int,
@@ -404,7 +403,6 @@ class VariableTS(Variable):
                 return value
         return self._before_value   # sonst Standard-BeforeValues verwenden:
 
-
     @before_value.setter
     def before_value(self, value: Union[int, float, np.ndarray, List[Union[int, float]]]):
         self._before_value = value  # Standardwerte für Simulationsstart im Energiesystem
@@ -419,9 +417,9 @@ class VariableTS(Variable):
         # sonst:
         else:
             index = last_index_of_segment  # Leistungswert beim Zeitpunkt VOR Startzeitpunkt vom nächsten Segment
-        time = self.linear_model.time_series_with_end[index]
+        time_stamp = self.linear_model.time_series_with_end[index]
         value = self.result[index]
-        return value, time
+        return value, time_stamp
 
 
 # class cInequation(Equation):

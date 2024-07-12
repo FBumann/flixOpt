@@ -412,8 +412,8 @@ class FeatureOn(Feature):
         # Var On:
         if self.use_on:
             # Before-Variable:
-            self.model.var_on = VariableTS('on', system_model.nrOfTimeSteps, self.owner, system_model, is_binary=True)
-            self.model.var_on.before_value = self.on_values_before_begin[0]
+            self.model.var_on = VariableTS('on', system_model.nrOfTimeSteps, self.owner, system_model, is_binary=True,
+                                           before_value=self.on_values_before_begin[0])
             self.model.var_onHoursSum = Variable('onHoursSum', 1, self.owner, system_model, lower_bound=self.on_hours_total_min,
                                                  upper_bound=self.on_hours_total_max)  # wenn max/min = None, dann bleibt das frei
 

@@ -65,23 +65,11 @@ def check_bounds(value: Union[int, float, np.ndarray, TimeSeriesRaw],
         raise Exception(f'{label} is above its {upper_bound=}!')
 
 
-def check_name_for_conformity(label: str):
-    # löscht alle in Attributen ungültigen Zeichen: todo: Vollständiger machen!
-    char_map = {ord('ä'): 'ae',
-                ord('ü'): 'ue',
-                ord('ö'): 'oe',
-                ord('ß'): 'ss',
-                ord('-'): '_'}
-    new_label = label.translate(char_map)
-    if new_label != label:
-        logger.warning(f'{label=} doesnt allign with name restrictions and is changed to {new_label=}')
-
-    # check, ob jetzt valid variable name: (für Verwendung in results_struct notwendig)
-    import re
-    if not re.search(r'^[a-zA-Z_]\w*$', new_label):
-        raise Exception('label \'' + label + '\' is not valid for variable name \n .\
-                     (no number first, no special characteres etc.)')
-    return new_label
+def check_name_for_conformity(label: str) -> str:
+    if label.startswith('_') or label.endswith('_') or '__' in label:
+        raise ValueError(f'{label} is an invalid name! Leading and trailing underscores are forbidden, '
+                         f'as well as double underscores. Use "-" or " " instead')
+    return label
 
 
 def check_exists(exists: Union[int, list, np.ndarray])-> Union[int, list,np.ndarray]:
@@ -110,59 +98,6 @@ def is_number(number_alias: Union[Skalar, str]):
         return True
     except ValueError:
         return False
-
-def createStructFromDictInDict(aDict: Dict):
-    # Macht aus verschachteltem Dict ein "matlab-struct"-like object
-    # --> als FeldNamen wird key verwendet wenn string, sonst key.label
-
-    # --> dict[key1]['key1_1'] -> struct.key1.key1_1
-
-    # z.B.:
-    #      {Kessel_object : {'Q_th':{'on':[..], 'val': [..]}
-    #                        'Pel' :{'on':[..], 'val': [..]} }
-    #       Last_object   : {'Q_th':{'val': [..]           } } }
-
-    aStruct = cDataBox2()
-    if isinstance(aDict, dict):
-        for key, val in aDict.items():
-
-            ## 1. attr-name :
-
-            # Wenn str (z.b. 'Q_th') :
-            if isinstance(key, str):
-                name = key
-            # sonst (z.B. bei Kessel_object):
-            else:
-                try:
-                    name = key.label
-                except:
-                    raise Exception('key has no label!')
-
-            ## 2. value:
-            # Wenn Wert wiederum dict, dann rekursiver Aufruf:
-            if isinstance(val, dict):
-                value = createStructFromDictInDict(val)  # rekursiver Aufruf!
-            else:
-                value = val
-
-            if hasattr(aStruct, name):
-                name = name + '_2'
-            setattr(aStruct, name, value)
-    else:
-        raise Exception('fct needs dict!')
-
-    return aStruct
-
-
-# emuliert matlab - struct-datentyp. (-> durch hinzufügen von Attributen)
-class cDataBox2:
-    # pass
-    def __str__(self):
-        astr = ('<cDataBox with ' + str(len(self.__dict__)) + ' values: ')
-        for aAttr in self.__dict__.keys():
-            astr += aAttr + ', '
-        astr += '>'
-        return astr
 
 
 def get_time_series_with_end(time_series: np.ndarray[np.datetime64],

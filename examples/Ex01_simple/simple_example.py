@@ -183,14 +183,14 @@ aCalc_post = flixPost.flix_results(label)
 
 # ## plotting ##
 # plotting all in- and out-flows of bus "Fernwaerme":
-fig1 = aCalc_post.plotInAndOuts('Fernwaerme',stacked=True)
+fig1 = aCalc_post.plotInAndOuts('Fernwärme',stacked=True)
 fig1.savefig('results/test1')
-fig2 = aCalc_post.plotInAndOuts('Fernwaerme',stacked=True, plotAsPlotly = True)
+fig2 = aCalc_post.plotInAndOuts('Fernwärme',stacked=True, plotAsPlotly = True)
 fig2.show()
 fig2.write_html('results/test2.html')
 fig3 = aCalc_post.plotInAndOuts('Strom',stacked=True, plotAsPlotly = True)
 fig3.show()
-fig4 = aCalc_post.plotShares('Fernwaerme',plotAsPlotly=True)
+fig4 = aCalc_post.plotShares('Fernwärme',plotAsPlotly=True)
 fig4.show()
 
 
@@ -212,10 +212,10 @@ print('way 1:')
 print(aCalc_post.results['Boiler']['Q_th']['val']) # access through dict
 print('way 2:')
 # find flow:
-aFlow_post = aCalc_post.getFlowsOf('Fernwaerme','Boiler')[0][0] # getting flow
+aFlow_post = aCalc_post.getFlowsOf('Fernwärme','Boiler')[0][0] # getting flow
 print(aFlow_post.results['val']) # access through cFlow_post object
 
 # ###############################################
 # ## saving csv of special flows of bus "Fernwaerme" ##
-aCalc_post.to_csv('Fernwaerme', 'results/FW.csv')
+aCalc_post.to_csv('Fernwärme', 'results/FW.csv')
     

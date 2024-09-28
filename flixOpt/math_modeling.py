@@ -48,7 +48,7 @@ class Variable:
 
         self._result = None  # Ergebnis-Speicher
 
-        self.label = utils.check_name_for_conformity(label)  # Check label for conformity
+        self.label = label
 
         if value is not None:   # Check if value is within bounds, element-wise
             min_ok = (self.lower_bound is None) or np.all(self.value >= self.lower_bound)

@@ -393,7 +393,6 @@ class Component(Element):
         if on_hours_total_max is not None:
             raise NotImplementedError(
                 "'on_hours_total_max' is not implemented yet for Components. Use Flow directly instead")
-        label = utils.check_name_for_conformity(label)  # todo: indexierbar / eindeutig machen!
         super().__init__(label, **kwargs)
         self.on_values_before_begin = on_values_before_begin if on_values_before_begin else [0, 0]
         self.effects_per_switch_on = as_effect_dict_with_ts('effects_per_switch_on', effects_per_switch_on, self)
@@ -723,7 +722,7 @@ class Flow(Element):
     def label_full(self) -> str:
         # Wenn im Erstellungsprozess comp noch nicht bekannt:
         comp_label = 'unknownComp' if self.comp is None else self.comp.label
-        return f'{comp_label}__{self.label}'  # z.B. für results_struct (deswegen auch _  statt . dazwischen)
+        return f'{comp_label}__{self.label}'
 
     @property  # Richtung
     def is_input_in_comp(self) -> bool:

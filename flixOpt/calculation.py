@@ -55,10 +55,6 @@ class Calculation:
             self._results = self.system_models[0].results  # (bei segmented Calc ist das schon explizit belegt.)
         return self._results
 
-    @property
-    def results_struct(self):
-        raise NotImplementedError()
-
     # time_indices: die Indexe des Energiesystems, die genutzt werden sollen. z.B. [0,1,4,6,8]
     def __init__(self, name, flow_system: FlowSystem, modeling_language: Literal["pyomo", "cvxpy"],
                  time_indices: Optional[list[int]] = None):
@@ -90,7 +86,6 @@ class Calculation:
 
         self._paths = {'log': None, 'data': None, 'info': None}
         self._results = None
-        self._results_struct = None  # hier kommen die verschmolzenen Ergebnisse der Segmente rein!
 
     def _define_path_names(self, path: str, save_results: bool, include_timestamp: bool = True,
                            nr_of_system_models: int = 1):
@@ -393,13 +388,6 @@ class SegmentedCalculation(Calculation):
     """
     class for defined way of solving a flow_system optimizatino
     """
-
-    @property
-    def results_struct(self):
-        # Wenn noch nicht ermittelt:
-        if self._results_struct is None:
-            self._results_struct = utils.createStructFromDictInDict(self.results)
-        return self._results_struct
 
     def solve(self, solverProps, segment_length: int, nr_of_used_steps: int, path='results/'):
         """

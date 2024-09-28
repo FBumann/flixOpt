@@ -97,8 +97,6 @@ class SystemModel(MathModel):
         # Variablen-Ergebnisse abspeichern:
         # 1. dict:
         (self.results, self.results_var) = self.flow_system.get_results_after_solve()
-        # 2. struct:
-        self.results_struct = utils.createStructFromDictInDict(self.results)
 
         def extract_main_results() -> Dict[str, Union[Skalar, Dict]]:
             main_results = {}
@@ -275,7 +273,7 @@ class Element:
 
     # TODO: besser occupied_args
     def __init__(self, label: str, **kwargs):
-        self.label = label
+        self.label = utils.check_name_for_conformity(label)
         self.TS_list: List[TimeSeries] = []  # = list with ALL timeseries-Values (--> need all classes with .trimTimeSeries()-Method, e.g. TimeSeries)
 
         self.sub_elements: List[Element] = []  # zugehörige Sub-ModelingElements
